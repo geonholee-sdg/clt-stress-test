@@ -1,3 +1,5 @@
+# checking a few n values to decide what counts as normal enough
+
 library(moments)
 
 student_id <- 5146
