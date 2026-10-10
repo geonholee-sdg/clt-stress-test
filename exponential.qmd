@@ -23,7 +23,7 @@ cutoff <- 0.3
 
 ## The population
 
-The exponential is the waiting time distribution from class, like how long until the next customer walks in. With rate = 1 the mean and sd are both 1, but the shape is nothing like a normal. Most values are small and there's a long tail to the right (skewness 2, kurtosis 9 where a normal is 3). Out of the five populations I expected this one to give the CLT the hardest time, other than Cauchy.
+The exponential is the waiting time distribution from class, like how long until the next customer walks in. With rate = 1 the mean and sd are both 1, but the shape is nothing like a normal. Most values are small and there's a long tail to the right (skewness 2, kurtosis 9 where a normal is 3). Out of the five populations I expected this one to give the CLT the hardest time, other than Cauchy. The draws are independent, all from the same distribution, and the variance is finite (it's 1), so all three CLT assumptions hold here. If the CLT works anywhere, it should work here. It just might be slow.
 
 ```{r}
 #| label: population-plot

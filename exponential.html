@@ -2262,7 +2262,7 @@ vertical-align: -.125em;
 </div>
 <section id="the-population" class="level2" data-number="1">
 <h2 data-number="1" class="anchored" data-anchor-id="the-population"><span class="header-section-number">1</span> The population</h2>
-<p>The exponential is the waiting time distribution from class, like how long until the next customer walks in. With rate = 1 the mean and sd are both 1, but the shape is nothing like a normal. Most values are small and there’s a long tail to the right (skewness 2, kurtosis 9 where a normal is 3). Out of the five populations I expected this one to give the CLT the hardest time, other than Cauchy.</p>
+<p>The exponential is the waiting time distribution from class, like how long until the next customer walks in. With rate = 1 the mean and sd are both 1, but the shape is nothing like a normal. Most values are small and there’s a long tail to the right (skewness 2, kurtosis 9 where a normal is 3). Out of the five populations I expected this one to give the CLT the hardest time, other than Cauchy. The draws are independent, all from the same distribution, and the variance is finite (it’s 1), so all three CLT assumptions hold here. If the CLT works anywhere, it should work here. It just might be slow.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>pop_mean <span class="ot">&lt;-</span> <span class="dv">1</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>pop_sd <span class="ot">&lt;-</span> <span class="dv">1</span></span>
