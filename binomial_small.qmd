@@ -1,0 +1,184 @@
+---
+title: "Binomial(5, 0.1) population"
+subtitle: "Part of my CLT stress test. Lumpy, skewed, and stuck at zero most of the time."
+author: "Geonho Lee"
+date: today
+format:
+  html:
+    toc: true
+    number-sections: true
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+source("clt_helpers.R")
+
+student_id <- 5146
+cutoff <- 0.3
+```
+
+## The population
+
+One draw is the number of successes in 5 tries when each try has a 10% chance. Most of the time the answer is 0 (59% of the time), and anything above 2 is rare. The mean is np = 0.5 and the sd is sqrt(np(1 - p)) = 0.67. It's right skewed (skewness 1.19), has a slightly heavy tail (kurtosis 4.02, excess 1.02), and like the die it only takes 6 values, but here 59% of the weight sits on just one of them. The draws are independent, all from the same distribution, and the variance is finite, so all three CLT assumptions hold.
+
+```{r}
+#| label: population-plot
+#| fig-cap: "Share of each value in 10,000 draws (bars) and the exact binomial probabilities (red dots)."
+size <- 5
+p <- 0.1
+
+pop_mean <- size * p
+pop_sd <- sqrt(size * p * (1 - p))
+pop_skew <- (1 - 2 * p) / pop_sd
+pop_exkurt <- (1 - 6 * p * (1 - p)) / (size * p * (1 - p))
+
+round(c(pop_mean = pop_mean, pop_sd = pop_sd, pop_skew = pop_skew, pop_exkurt = pop_exkurt), 3)
+
+set.seed(student_id)
+population_draws <- rbinom(10000, size = size, prob = p)
+
+values <- 0:size
+observed <- as.numeric(table(factor(population_draws, levels = values))) / 10000
+
+plot(values, observed, type = "h", lwd = 12, col = "darkorange", ylim = c(0, 0.7),
+     xlab = "Number of successes", ylab = "Proportion",
+     main = "Population: Binomial(5, 0.1)")
+points(values, dbinom(values, size, p), pch = 19, col = "firebrick")
+```
+
+## What I expected before running anything
+
+Using the same formulas as before, skewness needs n of about 16 to get under 0.3, and kurtosis only needs about 3.4. So skewness is the limit again and I predicted n = 16. That's faster than the exponential (45) because the skewness here is 1.19 instead of 2, even though this population looks a lot messier.
+
+```{r}
+#| label: prediction
+n_for_skew <- (pop_skew / cutoff)^2
+n_for_kurt <- pop_exkurt / cutoff
+
+c(n_for_skew = n_for_skew, n_for_kurt = n_for_kurt)
+```
+
+## Simulation
+
+Same setup as the other files: for each n I take 10,000 samples of size n and keep the mean of each one.
+
+```{r}
+#| label: run
+sim <- run_simulation(
+  generator = function(n) rbinom(n, size = size, prob = p),
+  pop_sd = pop_sd,
+  seed = student_id
+)
+
+results <- sim$results
+```
+
+## What happens as n grows
+
+```{r}
+#| label: trends
+#| fig-width: 9
+#| fig-height: 7
+#| fig-cap: "Red dashed = theory, gray dotted = my cutoff."
+plot_trends(results, pop_skew = pop_skew, pop_exkurt = pop_exkurt, cutoff = cutoff)
+```
+
+```{r}
+#| label: table
+show_rows <- results$n %in% c(2, 5, 10, 15, 16, 17, 20, 25, 30, 50, 100, 500)
+knitr::kable(round(results[show_rows, ], 3), row.names = FALSE)
+
+# checks over every n I tried, not just the rows above
+c(max_mean_gap = round(max(abs(results$mean - pop_mean)), 3),
+  max_sd_error = round(max(results$sd_error), 3))
+```
+
+The mean always stays within 0.004 of 0.5, and the sd stays within 3% of sigma/sqrt(n) (worst gap 2.4%, at n = 65). Kurtosis drops under 3.3 by n = 5 and isn't a problem after that. Skewness follows the red theory line down, and it's the thing that decides n. Shapiro W starts at 0.842 at n = 2, the lowest of any population so far, and it's still only 0.988 at n = 25. My guess is that's because so many of the means are tied at the same few values.
+
+## A closer look
+
+```{r}
+#| label: closer-look
+#| fig-width: 10
+#| fig-height: 6
+chosen_n <- smallest_n(results, cutoff = cutoff)
+plot_means(sim, show_n = c(5, 16, chosen_n, 100), pop_mean = pop_mean, pop_sd = pop_sd)
+```
+
+```{r}
+#| label: lumpiness
+# how many different values the mean takes, and how often it's exactly 0
+sapply(c("2", "5", "30"), function(k) length(unique(sim$means[[k]])))
+sapply(c("2", "5", "10"), function(k) mean(sim$means[[k]] == 0))
+```
+
+At n = 5 the mean is exactly 0 in about 8% of samples (every draw was 0), and at n = 2 it's 35%. That's the long flat stretch at the bottom left of the n = 5 Q-Q plot. The top end of that plot also shoots way above the line, which is the right skew. At n = 16, where my formula said it should pass, the middle of the staircase sits on the line but the bottom end still flattens out, because the mean can't go below 0. At n = `r chosen_n` that bottom bend is smaller and the top end is on the line. The n = 5 and n = 25 histograms have the same comb look as the die file, for the same reason: the mean only lands on multiples of 1/n.
+
+One thing confused me in the n = 100 Q-Q plot. Almost every point sits a little above the line, which made it look shifted. I checked it instead of assuming something was wrong:
+
+```{r}
+#| label: qq-check
+# qqline draws its line through the 25th and 75th percentiles, so I rebuilt that line
+# and measured how far the points are from it at n = 100
+m100 <- sim$means[["100"]]
+qq <- qqnorm(m100, plot.it = FALSE)
+slope <- diff(quantile(m100, c(0.25, 0.75))) / diff(qnorm(c(0.25, 0.75)))
+intercept <- quantile(m100, 0.25) - slope * qnorm(0.25)
+gap <- qq$y - (intercept + slope * qq$x)
+
+c(share_above = round(mean(gap > 0), 3), median_gap = round(median(gap), 4), step = 1 / 100)
+```
+
+About 92% of the points are above the line, but the typical gap is smaller than one step (the mean moves in steps of 1/100 here). So it's the tied values and where the line happens to pass through the steps, not the distribution being off. The staircase runs parallel to the line, which is what matters.
+
+## My decision
+
+```{r}
+#| label: decision
+chosen_n
+```
+
+With my rule (skewness and kurtosis within `r cutoff` of normal, sd within 3% of theory, and it has to stay that way for every bigger n), the smallest n I can defend is **n = `r chosen_n`**. That's 9 more than I predicted, so I looked at skewness right around the cutoff:
+
+```{r}
+#| label: around-cutoff
+around <- results[results$n %in% 14:25, c("n", "skewness")]
+around$formula <- pop_skew / sqrt(around$n)
+print(round(around, 3), row.names = FALSE)
+```
+
+The formula says skewness drops under 0.3 at n = 16. My simulation is still a bit over the cutoff there (0.320), then passes at 17, 18 and 19. Then n = 20 comes out at 0.323 when the formula says 0.267, and because of my keep-passing rule that one value pushes the answer to 25. That's simulation noise, like what I saw in the normal file, just landing on the wrong side of the line.
+
+Same data, different cutoff:
+
+```{r}
+#| label: cutoff-table
+data.frame(
+  cutoff = c(0.5, 0.3, 0.2, 0.1, 0.05),
+  smallest_n = sapply(c(0.5, 0.3, 0.2, 0.1, 0.05), function(k) smallest_n(results, cutoff = k))
+)
+```
+
+With a 0.5 cutoff, n = 6 is enough, and at 0.2 it takes 50. So under my rule 30 is enough here, but not by much, and under the 0.2 cutoff it wouldn't be. I don't read much into the 0.1 and 0.05 rows, since the normal file showed the noise is about that size.
+
+## Does the seed matter?
+
+```{r}
+#| label: other-seed
+sim_167 <- run_simulation(
+  generator = function(n) rbinom(n, size = size, prob = p),
+  pop_sd = pop_sd,
+  seed = 167
+)
+smallest_n(sim_167$results, cutoff = cutoff)
+```
+
+With seed 167 the answer is 16, exactly what the formula predicted. So between the two seeds my honest answer is somewhere from 16 to 25, and under 30 either way.
+
+## What surprised me
+
+I expected this one to be slower than the exponential because it looks so bad: six values, mostly zeros. It was actually faster. The number that mattered was skewness, and 1.19 is smaller than the exponential's 2, so lumpy didn't mean slow. The other thing was how much one noisy n moved my answer. The formula's 16 and my 25 are both reasonable, and which one I get depends on the seed.
