@@ -1,0 +1,146 @@
+---
+title: "Standard normal population"
+subtitle: "Part of my CLT stress test. The control case: what does already normal look like in my numbers?"
+author: "Geonho Lee"
+date: today
+format:
+  html:
+    toc: true
+    number-sections: true
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+source("clt_helpers.R")
+
+student_id <- 5146
+cutoff <- 0.3
+```
+
+## The population
+
+This is the control case. The standard normal has mean 0, sd 1, skewness 0 and kurtosis 3, so it already has the shape the CLT is supposed to end up at. The draws are independent, all from the same distribution, and the variance is finite, so all three CLT assumptions hold. It works as a baseline. I wanted to see what "already normal" looks like in my numbers before trusting them on the harder populations.
+
+```{r}
+#| label: population-plot
+#| fig-cap: "10,000 draws from N(0, 1)."
+pop_mean <- 0
+pop_sd <- 1
+pop_skew <- 0
+pop_exkurt <- 0
+
+set.seed(student_id)
+population_draws <- rnorm(10000)
+
+hist(population_draws, breaks = 40, probability = TRUE, col = "darkorange", border = "white",
+     main = "Population: Normal(0, 1)", xlab = "Individual value")
+curve(dnorm(x), add = TRUE, col = "firebrick", lwd = 2)
+```
+
+## What I expected before running anything
+
+There isn't much to predict. The average of normal values is exactly normal for any n, not just approximately, so both formulas below come out to 0. I expected my rule to pass at n = 2, the smallest n I tried.
+
+```{r}
+#| label: prediction
+# same formulas as the exponential file, but pop_skew and pop_exkurt are 0 here
+n_for_skew <- (pop_skew / cutoff)^2
+n_for_kurt <- pop_exkurt / cutoff
+
+c(n_for_skew = n_for_skew, n_for_kurt = n_for_kurt)
+```
+
+## Simulation
+
+Same setup as the other files: for each n I take 10,000 samples of size n and keep the mean of each one.
+
+```{r}
+#| label: run
+sim <- run_simulation(
+  generator = function(n) rnorm(n),
+  pop_sd = pop_sd,
+  seed = student_id
+)
+
+results <- sim$results
+```
+
+## What happens as n grows
+
+```{r}
+#| label: trends
+#| fig-width: 9
+#| fig-height: 7
+#| fig-cap: "Red dashed = theory, gray dotted = my cutoff."
+plot_trends(results, pop_skew = pop_skew, pop_exkurt = pop_exkurt, cutoff = cutoff)
+```
+
+```{r}
+#| label: table
+show_rows <- results$n %in% c(2, 3, 5, 10, 20, 30, 50, 100, 200, 500)
+knitr::kable(round(results[show_rows, ], 3), row.names = FALSE)
+
+# where the simulated sd was furthest from sigma / sqrt(n)
+print(round(results[which.max(results$sd_error), c("n", "sd_error")], 3), row.names = FALSE)
+
+# biggest distance from a perfect normal, over every n I tried
+c(max_abs_skew = round(max(abs(results$skewness)), 3),
+  max_abs_kurt_gap = round(max(abs(results$kurtosis - 3)), 3))
+```
+
+The mean stays within 0.005 of 0 at every n, and the sd is within 2% of sigma/sqrt(n) everywhere (the worst gap was 1.8% at n = 35). What I didn't expect is that skewness and kurtosis still bounce around even though the true values are exactly 0 and 3. Skewness gets as far as 0.047 and kurtosis is off by up to 0.1. That isn't the population, it's just noise from using 10,000 simulations. Shapiro W is 0.999 or higher at every n.
+
+## A closer look
+
+```{r}
+#| label: closer-look
+#| fig-width: 10
+#| fig-height: 6
+chosen_n <- smallest_n(results, cutoff = cutoff)
+plot_means(sim, show_n = c(2, 5, 30, 100), pop_mean = pop_mean, pop_sd = pop_sd)
+```
+
+All four histograms already sit on the red curve, even at n = 2. The Q-Q plots are straight lines at every n. Only the last few points at each end wander a little, and that happens at n = 100 too, so it's just randomness in the extremes. There's nothing for the CLT to fix here.
+
+## My decision
+
+```{r}
+#| label: decision
+chosen_n
+```
+
+With my rule (skewness and kurtosis within `r cutoff` of normal, sd within 3% of theory, and it has to stay that way for every bigger n), the smallest n I can defend is **n = `r chosen_n`**, the smallest n I tested. For a normal population the answer is basically "any n", so 30 is way more than needed.
+
+Same data, different cutoff. I added two tighter cutoffs here on purpose:
+
+```{r}
+#| label: cutoff-table
+data.frame(
+  cutoff = c(0.5, 0.3, 0.2, 0.1, 0.05),
+  smallest_n = sapply(c(0.5, 0.3, 0.2, 0.1, 0.05), function(k) smallest_n(results, cutoff = k))
+)
+```
+
+This table ended up being the most useful thing in this file. Every cutoff from 0.5 down to 0.1 says n = 2, which is right. But at 0.05 it says I'd need n = 475, for a population that is already perfectly normal. That happens because the simulation noise alone moves skewness and kurtosis by around 0.05 to 0.1. So a cutoff that tight is mostly measuring noise. It's also why I'm comfortable with 0.3: it's a few times bigger than the noise, but still small enough to catch the real problem in the exponential case.
+
+## Does the seed matter?
+
+```{r}
+#| label: other-seed
+sim_167 <- run_simulation(
+  generator = function(n) rnorm(n),
+  pop_sd = pop_sd,
+  seed = 167
+)
+smallest_n(sim_167$results, cutoff = cutoff)
+```
+
+With seed 167 the answer is still n = 2. Nothing to argue about here.
+
+## What surprised me
+
+That "perfectly normal" doesn't show up as perfect numbers. Even with 10,000 simulations the skewness wobbles by up to about 0.05 and the kurtosis by up to 0.1. Before this I would have read a skewness of 0.05 as slightly skewed. Now I know that at this many simulations it can be pure noise, and that's what I used to sanity check my own cutoff.
