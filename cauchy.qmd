@@ -1,0 +1,220 @@
+---
+title: "Cauchy population"
+subtitle: "Part of my CLT stress test. The one where averaging doesn't help at all."
+author: "Geonho Lee"
+date: today
+format:
+  html:
+    toc: true
+    number-sections: true
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+source("clt_helpers.R")
+
+student_id <- 5146
+cutoff <- 0.3
+```
+
+## The population
+
+The standard Cauchy (location 0, scale 1) looks like a bell curve with very fat tails. It's symmetric around 0 and its median is 0, but it has no mean and no standard deviation. The tails are so heavy that the integrals for them don't converge. That breaks one of the CLT assumptions: the draws are independent and identically distributed, but the variance isn't finite. So this is the case where the theorem doesn't promise anything.
+
+```{r}
+#| label: population-plot
+#| fig-cap: "10,000 draws from Cauchy(0, 1), only the ones between -10 and 10. Red = the Cauchy density."
+set.seed(student_id)
+population_draws <- rcauchy(10000)
+
+# a normal histogram is useless here because a few draws are in the thousands
+range(population_draws)
+
+# share of a Cauchy(0, 1) that lands between -10 and 10
+inside <- 1 - 2 * pcauchy(-10)
+c(simulated_outside = mean(abs(population_draws) > 10), theory_outside = 1 - inside)
+
+hist(population_draws[abs(population_draws) < 10], breaks = 40, probability = TRUE,
+     col = "darkorange", border = "white",
+     main = "Population: Cauchy(0, 1), middle part only", xlab = "Individual value")
+curve(dcauchy(x) / inside, add = TRUE, col = "firebrick", lwd = 2)
+```
+
+The smallest of my 10,000 draws was about -14,493 and the largest about 4,241. That's why I only plotted the draws between -10 and 10. About 6.4% of the draws were outside that range, which matches the 6.3% the Cauchy formula gives. I divided the red curve by the share inside the range so it lines up with a histogram that only covers the middle.
+
+## What I expected before running anything
+
+There's no formula to plug in like in the other files, because the Cauchy has no mean, sd, skewness or kurtosis. What I had was the example from class: the quantiles of the mean at n = 5 and n = 500 came out almost the same. The reason is that the average of n Cauchy values has exactly the same Cauchy(0, 1) distribution as one value. So I predicted that no n would work, no matter how big.
+
+## Simulation
+
+Same loop as the other files. The only difference is that I pass `pop_sd = NA`, since there is no sigma to compare with.
+
+```{r}
+#| label: run
+sim <- run_simulation(
+  generator = function(n) rcauchy(n),
+  pop_sd = NA,
+  seed = student_id
+)
+
+results <- sim$results
+```
+
+## What happens as n grows
+
+```{r}
+#| label: trends
+#| fig-width: 9
+#| fig-height: 7
+#| fig-cap: "No theory lines, since there's nothing to compare with. My ±0.3 skewness cutoff looks like one line at 0 because the scale goes to ±100, and the kurtosis cutoff is off the chart."
+plot_trends(results, cutoff = cutoff)
+```
+
+```{r}
+#| label: table
+show_rows <- results$n %in% c(2, 5, 10, 30, 50, 70, 100, 200, 500)
+knitr::kable(round(results[show_rows, c("n", "mean", "sd", "skewness", "kurtosis", "shapiro_w")], 3),
+             row.names = FALSE)
+
+# over every n I tried
+c(min_abs_skew = round(min(abs(results$skewness)), 2),
+  max_abs_skew = round(max(abs(results$skewness)), 2),
+  min_kurtosis = round(min(results$kurtosis)),
+  max_kurtosis = round(max(results$kurtosis)),
+  max_shapiro_w = round(max(results$shapiro_w), 3))
+```
+
+None of these settle down. In every other file, the average of the 10,000 means sat right on the population mean. Here it goes from -81.15 (at n = 70) to 23.71 (at n = 18), and there's no population mean for it to sit on anyway. The sd of the means doesn't shrink either. It bounces between about 34 and 8,138 with no pattern. The smallest skewness (in absolute value) is about 0.97, the lowest kurtosis is about 514, and Shapiro W never gets above 0.191. For comparison, W was above 0.84 at n = 2 for every other population.
+
+At n = 70 the skewness is 99.97 in absolute value and the kurtosis is 9,996. I tried a made-up set of 10,000 numbers where 9,999 are 0 and one is 1, and it gives 99.985 and 9,998, the most extreme values 10,000 numbers can get. So at n = 70, basically one sample decides everything:
+
+```{r}
+#| label: n70
+m70 <- sim$means[["70"]]
+c(most_extreme_mean = round(m70[which.max(abs(m70))]),
+  average_of_means = round(mean(m70), 2),
+  average_without_it = round(mean(m70[-which.max(abs(m70))]), 2))
+```
+
+One sample of 70 values had a mean of about -813,768. Taking out just that one sample moves the average of the 10,000 means from -81.15 to 0.22.
+
+## A closer look
+
+```{r}
+#| label: closer-look
+#| fig-width: 10
+#| fig-height: 6
+#| fig-cap: "Top: means between -10 and 10, red = Cauchy(0, 1), the same curve for every n. Bottom: Q-Q plots of all 10,000 means."
+show_n <- c(2, 30, 500)
+
+old_par <- par(mfrow = c(2, 3))
+
+for (n in show_n) {
+  m <- sim$means[[as.character(n)]]
+  hist(m[abs(m) < 10], breaks = 40, probability = TRUE, col = "steelblue", border = "white",
+       main = paste("n =", n), xlab = "Sample mean (only between -10 and 10)")
+  curve(dcauchy(x) / inside, add = TRUE, col = "firebrick", lwd = 2)
+}
+
+for (n in show_n) {
+  m <- sim$means[[as.character(n)]]
+  qqnorm(m, main = paste("Q-Q, n =", n), pch = 16, cex = 0.3, col = "steelblue")
+  qqline(m, col = "firebrick", lwd = 2)
+}
+
+par(old_par)
+```
+
+```{r}
+#| label: quantiles
+probs <- c(0.05, 0.25, 0.5, 0.75, 0.95)
+quantile_table <- sapply(c("2", "30", "500"), function(k) quantile(sim$means[[k]], probs))
+round(cbind(quantile_table, cauchy = qcauchy(probs)), 3)
+
+# share of means outside -10 to 10
+sapply(c("2", "30", "500"), function(k) mean(abs(sim$means[[k]]) > 10))
+```
+
+The histograms at n = 2, 30 and 500 look the same, and all three sit on the same Cauchy(0, 1) curve. The quantile table says the same thing with numbers. The middle 50% of the means runs from about -1 to 1 at n = 2, and it still runs from about -1 to 1 at n = 500. The 5% and 95% quantiles stay between about ±6.2 and ±6.8, around the Cauchy's ±6.31. Averaging 500 values made the mean no more precise than a single draw. The share of means outside ±10 also stays at about 6.4%, the same as for single draws.
+
+The Q-Q plots are the opposite of a straight line. Almost all the points are squashed into a flat line in the middle, and a few points at each end shoot off into the hundreds or thousands (at n = 500 the lowest mean is about -23,000). That shape doesn't change with n either.
+
+## My decision
+
+```{r}
+#| label: decision
+smallest_n(results, cutoff = cutoff)
+
+# even if I skip the sd check (there's no sigma), does any n pass skewness and kurtosis?
+results$n[abs(results$skewness) < cutoff & abs(results$kurtosis - 3) < cutoff]
+```
+
+**There is no n.** My rule can't even be fully applied, because the sd check needs a sigma and the Cauchy doesn't have one. So I also checked just skewness and kurtosis, and not a single n from 2 to 500 passes. The histograms, the quantiles, the Q-Q plots and Shapiro W all point the same way. The mean of 500 Cauchy values is exactly as spread out as one Cauchy value, so going to 5,000 or 50,000 wouldn't change it. This isn't the CLT working slowly. It's the CLT not applying because the variance is infinite.
+
+## What does work: the median
+
+The class notes said the sample median is still meaningful for Cauchy data even though the mean isn't, so I tried the same idea with medians instead of means. For the median there's a known large-n formula: its sd is about 1 / (2 f(0) sqrt(n)), where f(0) is the density at the center. For the Cauchy, f(0) = 1/π, so the sd should be about π / (2 sqrt(n)).
+
+```{r}
+#| label: medians
+set.seed(student_id)
+median_n <- c(5, 30, 100, 500)
+median_results <- data.frame()
+all_medians <- list()
+
+for (n in median_n) {
+  sample_medians <- replicate(10000, median(rcauchy(n)))
+  all_medians[[as.character(n)]] <- sample_medians
+
+  median_results <- rbind(median_results, data.frame(
+    n         = n,
+    mean      = mean(sample_medians),
+    sd        = sd(sample_medians),
+    theory_se = pi / (2 * sqrt(n)),
+    skewness  = skewness(sample_medians),
+    kurtosis  = kurtosis(sample_medians)
+  ))
+}
+
+median_results$sd_error <- abs(median_results$sd - median_results$theory_se) / median_results$theory_se
+knitr::kable(round(median_results, 3), row.names = FALSE)
+```
+
+```{r}
+#| label: median-qq
+#| fig-width: 8
+#| fig-height: 4
+old_par <- par(mfrow = c(1, 2))
+for (n in c(5, 100)) {
+  qqnorm(all_medians[[as.character(n)]], main = paste("Q-Q of medians, n =", n),
+         pch = 16, cex = 0.3, col = "steelblue")
+  qqline(all_medians[[as.character(n)]], col = "firebrick", lwd = 2)
+}
+par(old_par)
+```
+
+The medians are centered on 0 at every n, and they do settle down. At n = 5 they still have heavy tails (kurtosis 151), and the Q-Q plot has ends that shoot off like the means did. At n = 30 the kurtosis is 3.48 and the sd is 3.6% off the formula, so it misses my cutoff on both. At n = 100 everything passes: skewness 0.015, kurtosis 3.16, and the sd is within 2.2% of π / (2 sqrt(n)). The Q-Q plot there is close to a straight line, with only a slight bend at the far ends. By n = 500 the sd is within 0.2% of the formula. Using the same rule as the mean, the median is normal enough at n = 100, the first of the four n I tried that passes. I only tried four values here, so the real cutoff could be somewhere between 30 and 100.
+
+## Does the seed matter?
+
+```{r}
+#| label: other-seed
+sim_167 <- run_simulation(
+  generator = function(n) rcauchy(n),
+  pop_sd = NA,
+  seed = 167
+)
+smallest_n(sim_167$results, cutoff = cutoff)
+sim_167$results$n[abs(sim_167$results$skewness) < cutoff & abs(sim_167$results$kurtosis - 3) < cutoff]
+```
+
+Same answer with seed 167: no n, and no n passes skewness and kurtosis either. The exact numbers change a lot between seeds, because they depend on whichever few extreme draws happen to show up, but the conclusion doesn't.
+
+## What surprised me
+
+Two things. First, how much one value can do. A single sample at n = 70 moved the average of 10,000 means from about 0 to -81. Second, I knew from class that the mean wouldn't settle, but I didn't expect the quantiles at n = 500 to look almost exactly like the quantiles at n = 2. More data usually helps. Here it did nothing for the mean, while the median, using the exact same kind of data, was fine by n = 100. So the problem isn't the data, it's using the mean on data like this.
