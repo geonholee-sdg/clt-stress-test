@@ -1,0 +1,178 @@
+---
+title: "Life/Death population"
+subtitle: "Part of my CLT stress test. Extra credit: a made-up age-at-death distribution with two humps."
+author: "Geonho Lee"
+date: today
+format:
+  html:
+    toc: true
+    number-sections: true
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+source("clt_helpers.R")
+
+student_id <- 5146
+cutoff <- 0.3
+```
+
+## The population
+
+This is the age-at-death distribution from the class handout. Ages go from 0 to 100. There's a spike of deaths at age 0 that drops off fast, and then a second, bell-shaped hump centered at 65. The handout says it was built to copy the shape of a graph, so it's not real mortality data. I built it the same way the handout does. The draws are independent, all from the same distribution, and since age is stuck between 0 and 100 the variance is finite, so all three CLT assumptions hold.
+
+```{r}
+#| label: population
+#| fig-cap: "Probability of each age at death."
+# same construction as the class handout
+age <- 0:100
+early_component <- 0.045 * exp(-age / 5)
+adult_component <- 0.030 * exp(-0.5 * ((age - 65) / 10)^2)
+weight <- early_component + adult_component
+probability <- weight / sum(weight)
+
+rdeath <- function(n) {
+  sample(x = age, size = n, replace = TRUE, prob = probability)
+}
+
+pop_mean <- sum(age * probability)
+pop_sd <- sqrt(sum((age - pop_mean)^2 * probability))
+pop_skew <- sum((age - pop_mean)^3 * probability) / pop_sd^3
+pop_exkurt <- sum((age - pop_mean)^4 * probability) / pop_sd^4 - 3
+
+round(c(pop_mean = pop_mean, pop_sd = pop_sd, pop_skew = pop_skew, pop_kurtosis = pop_exkurt + 3), 3)
+
+plot(age, 100 * probability, type = "h", lwd = 3, col = "darkorange",
+     xlab = "Age at death", ylab = "Percent of deaths",
+     main = "Population: custom age-at-death distribution")
+```
+
+The mean is 49.98 and the sd is 27.63, the same as in the handout. The skewness is -0.86, so it leans left (the early deaths pull the mean down), and the kurtosis is 2.21, so its tails are lighter than a normal. One odd thing is that the mean, about 50, isn't a very common age to die here. Age 50 has about 1% of deaths while age 65 has about 3%.
+
+## What I expected before running anything
+
+Same formulas as the other files. Skewness needs n of about 8.3 to get within 0.3 of zero, and kurtosis only needs about 2.6. So I predicted n = 9. The population looks strange, but its skewness (-0.86) is smaller in size than the binomial's (1.19) or the exponential's (2), so I expected it to be one of the faster ones.
+
+```{r}
+#| label: prediction
+n_for_skew <- (pop_skew / cutoff)^2
+n_for_kurt <- abs(pop_exkurt) / cutoff
+
+c(n_for_skew = n_for_skew, n_for_kurt = n_for_kurt)
+```
+
+## Simulation
+
+Same setup as the other files: for each n I take 10,000 samples of size n and keep the mean of each one.
+
+```{r}
+#| label: run
+sim <- run_simulation(
+  generator = rdeath,
+  pop_sd = pop_sd,
+  seed = student_id
+)
+
+results <- sim$results
+```
+
+## What happens as n grows
+
+```{r}
+#| label: trends
+#| fig-width: 9
+#| fig-height: 7
+#| fig-cap: "Red dashed = theory, gray dotted = my cutoff."
+plot_trends(results, pop_skew = pop_skew, pop_exkurt = pop_exkurt, cutoff = cutoff)
+```
+
+```{r}
+#| label: table
+show_rows <- results$n %in% c(2, 3, 5, 8, 9, 10, 11, 12, 20, 30, 50, 100, 500)
+knitr::kable(round(results[show_rows, ], 3), row.names = FALSE)
+
+# checks over every n I tried, not just the rows above
+c(max_mean_gap = round(max(abs(results$mean - pop_mean)), 3),
+  max_sd_error = round(max(results$sd_error), 3))
+```
+
+The mean is always within about 0.33 years of 49.98, and the sd always stays within 1.4% of sigma/sqrt(n). Kurtosis only fails at n = 2 and 3 (2.62 and 2.63). Skewness is what holds it back. It starts at -0.61 at n = 2, follows the red theory line up toward 0, and stays outside my cutoff through n = 10. Shapiro W goes from 0.928 at n = 2 to 0.999 at n = 30.
+
+## A closer look
+
+```{r}
+#| label: closer-look
+#| fig-width: 10
+#| fig-height: 6
+chosen_n <- smallest_n(results, cutoff = cutoff)
+plot_means(sim, show_n = c(2, 5, chosen_n, 30), pop_mean = pop_mean, pop_sd = pop_sd)
+```
+
+The n = 2 histogram surprised me. It has three bumps instead of two. I think it's because two random deaths can be both young, one young and one old, or both old, and each of those lands in a different place:
+
+```{r}
+#| label: three-bumps
+# share of the n = 2 means near each bump
+m2 <- sim$means[["2"]]
+c(under_15 = mean(m2 < 15), from_15_to_50 = mean(m2 >= 15 & m2 < 50), over_50 = mean(m2 >= 50))
+
+# rough guess, calling anyone who dies before 20 "young"
+p_young <- sum(probability[age < 20])
+c(both_young = p_young^2, one_each = 2 * p_young * (1 - p_young), both_old = (1 - p_young)^2)
+```
+
+The guess gives about 6%, 37% and 57%, and the simulation gives about 6%, 38% and 56%. My cut points are rough, so they don't line up perfectly, but the three bumps are those three cases.
+
+At n = 5 the empty stretch between the first two bumps (around ages 11 to 21 at n = 2) is gone, but the histogram is still lumpy, the Q-Q plot still wiggles in the middle, and the top end bends well under the line. At n = `r chosen_n` the histogram is a smooth bell. The Q-Q plot is straight through the middle and both ends dip a little under the line, which is what a slight left skew looks like. By n = 30 the points sit on the line except for the very top.
+
+## My decision
+
+```{r}
+#| label: decision
+chosen_n
+```
+
+With my rule (skewness and kurtosis within `r cutoff` of normal, sd within 3% of theory, and it has to stay that way for every bigger n), the smallest n I can defend is **n = `r chosen_n`**. That's 2 more than I predicted, so I looked at skewness around the cutoff:
+
+```{r}
+#| label: around-cutoff
+around <- results[results$n %in% 7:13, c("n", "skewness")]
+around$formula <- pop_skew / sqrt(around$n)
+print(round(around, 3), row.names = FALSE)
+```
+
+The formula crosses -0.3 between n = 8 and 9. My simulation sits right on the edge there (-0.305 at n = 8 and -0.303 at n = 9), then n = 10 comes out at -0.315, so the first n that passes and keeps passing is 11.
+
+Same data, different cutoff:
+
+```{r}
+#| label: cutoff-table
+data.frame(
+  cutoff = c(0.5, 0.3, 0.2, 0.1, 0.05),
+  smallest_n = sapply(c(0.5, 0.3, 0.2, 0.1, 0.05), function(k) smallest_n(results, cutoff = k))
+)
+```
+
+With a 0.5 cutoff, n = 3 is enough, and even with a strict 0.2 cutoff the answer is exactly 30. So for this population, 30 works under any of the cutoffs I'd actually use. Like in the other files, I don't put much weight on the 0.1 and 0.05 rows because of simulation noise.
+
+## Does the seed matter?
+
+```{r}
+#| label: other-seed
+sim_167 <- run_simulation(
+  generator = rdeath,
+  pop_sd = pop_sd,
+  seed = 167
+)
+smallest_n(sim_167$results, cutoff = cutoff)
+```
+
+Seed 167 also gives n = 11, so both seeds agree.
+
+## What surprised me
+
+The biggest surprise was that this population, which looks like the strangest one in the project with a spike at 0 and a hump at 65, was one of the fastest to become normal. The shape looking weird doesn't matter much. What matters is how lopsided it is, and a skewness of -0.86 isn't that much. The other was the three bumps at n = 2. I expected the averages to just get squeezed toward the middle, but with two people you can actually see the three combinations (both young, one of each, both old) before it all blends together.
