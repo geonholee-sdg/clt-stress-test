@@ -1,0 +1,233 @@
+---
+title: "Non-identical Bernoulli (basketball shots)"
+subtitle: "Part of my CLT stress test. Every shot has its own chance of going in."
+author: "Geonho Lee"
+date: today
+format:
+  html:
+    toc: true
+    number-sections: true
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+source("clt_helpers.R")
+
+student_id <- 5146
+cutoff <- 0.3
+```
+
+## The population
+
+This is the fatigue example from the class handout. A player's first shot goes in 90% of the time, and by the last shot it's down to 50%, dropping in a straight line in between. Each shot is a 1 (make) or a 0 (miss), so the sample mean is just the shooting percentage for the game.
+
+The handout uses 20 shots. To try different n, I keep the same idea for any number of shots: the first shot is always 0.90, the last is always 0.50, and the rest are evenly spaced in between. So for every n the average probability is exactly 0.70.
+
+The shots are independent and each one has a finite variance, but they are not identically distributed, so one of the three CLT assumptions is broken. The handout says a normal approximation can still work "under additional conditions," so this is a test of whether that happens here.
+
+```{r}
+#| label: population
+#| fig-cap: "Red = chance of making each shot in a 20-shot game. Blue = one simulated game."
+shot_probs <- function(n) seq(0.90, 0.50, length.out = n)
+
+p20 <- shot_probs(20)
+round(c(average_p = mean(p20), first = p20[1], last = p20[20]), 3)
+
+set.seed(student_id)
+one_game <- rbinom(20, size = 1, prob = p20)
+
+plot(1:20, p20, type = "b", pch = 19, ylim = c(0, 1), col = "firebrick",
+     xlab = "Shot number", ylab = "Probability / outcome",
+     main = "Population: shot probability drops with fatigue")
+points(1:20, one_game, pch = 19, col = "steelblue", cex = 1.2)
+```
+
+There isn't one population sd here, since every shot has its own. A 90% shot has sd sqrt(0.9 × 0.1) = 0.30, and a 50% shot has sd 0.50.
+
+## What I expected before running anything
+
+If every shot were 70%, this would just be a Bernoulli(0.7) and I could use the same formulas as the other files:
+
+```{r}
+#| label: prediction
+p_bar <- 0.7
+skew_70 <- (1 - 2 * p_bar) / sqrt(p_bar * (1 - p_bar))
+exkurt_70 <- (1 - 6 * p_bar * (1 - p_bar)) / (p_bar * (1 - p_bar))
+
+c(n_for_skew = (skew_70 / cutoff)^2, n_for_kurt = abs(exkurt_70) / cutoff)
+```
+
+That says about 9. My guess was that changing probabilities would make it a bit slower than that, since the shots aren't identical. I also wasn't sure the usual standard error σ/√n would still be right, because there's no single σ.
+
+## Simulation
+
+For each n I simulate 10,000 games of n shots and keep the shooting percentage of each one. I also run a constant 70% shooter with the same seed so I can compare the two directly.
+
+```{r}
+#| label: run
+sim <- run_simulation(
+  generator = function(n) rbinom(n, size = 1, prob = shot_probs(n)),
+  pop_sd = sqrt(0.7 * 0.3),   # the usual formula, pretending every shot is 70%
+  seed = student_id
+)
+results <- sim$results
+
+constant <- run_simulation(
+  generator = function(n) rbinom(n, size = 1, prob = 0.7),
+  pop_sd = sqrt(0.7 * 0.3),
+  seed = student_id
+)$results
+```
+
+## The standard error
+
+Since every shot has its own p, the variance of the total is the sum of each shot's variance, p(1 - p). Dividing by n gives the SE of the shooting percentage:
+
+```{r}
+#| label: standard-error
+exact_se <- function(n) {
+  p <- shot_probs(n)
+  sqrt(sum(p * (1 - p))) / n
+}
+
+results_exact <- results
+results_exact$theory_se <- sapply(results$n, exact_se)
+results_exact$sd_error <- abs(results$sd - results_exact$theory_se) / results_exact$theory_se
+
+se_rows <- results$n %in% c(2, 5, 10, 20, 50, 100, 500)
+knitr::kable(data.frame(
+  n = results$n[se_rows],
+  simulated_sd = round(results$sd[se_rows], 4),
+  usual_formula = round(results$theory_se[se_rows], 4),
+  usual_error = round(results$sd_error[se_rows], 3),
+  sum_of_variances = round(results_exact$theory_se[se_rows], 4),
+  sum_error = round(results_exact$sd_error[se_rows], 3)
+))
+
+c(max_usual_error_n_ge_10 = round(max(results$sd_error[results$n >= 10]), 3),
+  max_sum_error = round(max(results_exact$sd_error), 3))
+```
+
+This was the most interesting part of this file. The usual formula, σ/√n with σ = sqrt(0.7 × 0.3), is too big. At n = 20 it gives 0.1025 while the simulated sd is 0.0994, and from n = 10 on it's off by up to 4.7%. The sum-of-variances SE is never more than about 1.6% off. The reason is that a 90% shot is much more predictable than a 70% shot (p(1 - p) is 0.09 instead of 0.21), and the 50% shots at the end don't make up for it. At n = 20 the shots average p(1 - p) = 0.195, not 0.21.
+
+## What happens as n grows
+
+```{r}
+#| label: trends
+#| fig-width: 9
+#| fig-height: 7
+#| fig-cap: "Red dashed (spread) = sum-of-variances SE. No single theory line for skewness or kurtosis here. Gray dotted = my cutoff."
+plot_trends(results_exact, cutoff = cutoff)
+```
+
+```{r}
+#| label: table
+show_rows <- results$n %in% c(2, 4, 5, 6, 7, 8, 10, 20, 30, 50, 100, 500)
+knitr::kable(round(results_exact[show_rows, ], 3), row.names = FALSE)
+
+c(max_mean_gap = round(max(abs(results$mean - 0.7)), 4))
+```
+
+The average shooting percentage is within 0.002 of 0.70 at every n. Skewness starts negative (-0.38 at n = 2), because most shots are better than 50% and the percentage can't go above 1. It drops under 0.3 in size at n = 6, and from n = 200 on it stays within 0.09 of 0 (it's even slightly positive at n = 250). Kurtosis starts low (2.29 at n = 2) and stays between about 2.87 and 3.12 from n = 8 on. Shapiro W is only 0.734 at n = 2 and still 0.975 at n = 20. Like the die and binomial, the shooting percentage can only take a few values (multiples of 1/n), so lots of results are tied.
+
+## A closer look
+
+```{r}
+#| label: closer-look
+#| fig-width: 10
+#| fig-height: 6
+#| fig-cap: "Red curve = normal with the sum-of-variances SE."
+chosen_n <- smallest_n(results_exact, cutoff = cutoff)
+show_n <- c(2, chosen_n, 20, 100)
+
+old_par <- par(mfrow = c(2, 4))
+
+for (n in show_n) {
+  m <- sim$means[[as.character(n)]]
+  hist(m, breaks = 40, probability = TRUE, col = "steelblue", border = "white",
+       main = paste("n =", n), xlab = "Shooting percentage")
+  curve(dnorm(x, mean = 0.7, sd = exact_se(n)), add = TRUE, col = "firebrick", lwd = 2)
+}
+
+for (n in show_n) {
+  m <- sim$means[[as.character(n)]]
+  qqnorm(m, main = paste("Q-Q, n =", n), pch = 16, cex = 0.3, col = "steelblue")
+  qqline(m, col = "firebrick", lwd = 2)
+}
+
+par(old_par)
+```
+
+At n = 2 a game can only be 0%, 50% or 100%, so there are just three bars. At n = 6 there are 7 possible values, and about 10% of the simulated games were 6 for 6 (the exact chance is 10.5%). That's the long flat step at 100% in the Q-Q plot, since the percentage can't go any higher. The bottom of the staircase also sits more than one step under the line. So at n = 6 the numbers pass, but the plot is still a rough staircase. By n = 20, the game length in the handout, the staircase follows the line except for the bottom few steps, and at n = 100 it's right on it. The comb-shaped histograms with bars sticking out above the red curve are the same binning effect as in the die file.
+
+## My decision
+
+```{r}
+#| label: decision
+# with the usual sigma / sqrt(n)
+smallest_n(results, cutoff = cutoff)
+
+# with the sum-of-variances SE
+chosen_n
+```
+
+With the usual formula, my rule never passes. That's not because of the shape. Skewness and kurtosis are fine early, but the sd check keeps failing because σ/√n is the wrong SE here. With the SE that adds up each shot's variance, the smallest n I can defend is **n = `r chosen_n`**. Because a 6-shot game can only land on 7 values, I'd call that the bare minimum rather than a comfortable answer.
+
+Same data, different cutoff (using the sum-of-variances SE):
+
+```{r}
+#| label: cutoff-table
+data.frame(
+  cutoff = c(0.5, 0.3, 0.2, 0.1, 0.05),
+  smallest_n = sapply(c(0.5, 0.3, 0.2, 0.1, 0.05), function(k) smallest_n(results_exact, cutoff = k))
+)
+```
+
+With a 0.5 cutoff n = 3 is enough, and with 0.2 it's 25, so 30 is enough here even under the strict cutoff. As in the other files, I don't read much into the 0.1 and 0.05 rows.
+
+## Changing p versus a constant 70% shooter
+
+```{r}
+#| label: compare-constant
+smallest_n(constant, cutoff = cutoff)
+
+compare_rows <- c(5, 10, 20, 50)
+print(data.frame(
+  n = compare_rows,
+  changing_p_skew = round(results$skewness[results$n %in% compare_rows], 3),
+  constant_p_skew = round(constant$skewness[constant$n %in% compare_rows], 3)
+), row.names = FALSE)
+```
+
+The constant 70% shooter needs n = 10, close to the 9 the formula predicted. The changing-p shooter got there faster, and its skewness is smaller in size at every n in the table. My guess at why: the shots near the end, close to 50%, are the most random ones (p(1 - p) is 0.25 at p = 0.5 versus 0.09 at p = 0.9), and they're close to symmetric. So most of the game-to-game noise comes from nearly symmetric shots, while the very lopsided early shots barely add any.
+
+## Does the seed matter?
+
+```{r}
+#| label: other-seed
+sim_167 <- run_simulation(
+  generator = function(n) rbinom(n, size = 1, prob = shot_probs(n)),
+  pop_sd = sqrt(0.7 * 0.3),
+  seed = 167
+)$results
+sim_167$theory_se <- sapply(sim_167$n, exact_se)
+sim_167$sd_error <- abs(sim_167$sd - sim_167$theory_se) / sim_167$theory_se
+smallest_n(sim_167, cutoff = cutoff)
+
+constant_167 <- run_simulation(
+  generator = function(n) rbinom(n, size = 1, prob = 0.7),
+  pop_sd = sqrt(0.7 * 0.3),
+  seed = 167
+)$results
+smallest_n(constant_167, cutoff = cutoff)
+```
+
+With seed 167 the changing-p shooter needs n = 8 and the constant shooter needs 9. So it's faster with both seeds, but with seed 167 the gap is only one shot. For the changing-p version my honest answer is somewhere around 6 to 8.
+
+## What surprised me
+
+I guessed that non-identical shots would make the CLT slower, and it was actually a little faster than a constant 70% shooter. What did break was the formula. If I had plugged in σ/√n with p = 0.7 without thinking about it, my rule would have said this never becomes normal, and that would have been the formula's fault, not the shape's. The project instructions said not to apply the usual formula automatically, and this is a good example of why.
