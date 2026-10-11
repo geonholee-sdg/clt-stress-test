@@ -1,0 +1,280 @@
+---
+title: "Dependent machine failures"
+subtitle: "Part of my CLT stress test. Each operating time depends on the one before it."
+author: "Geonho Lee"
+date: today
+format:
+  html:
+    toc: true
+    number-sections: true
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+source("clt_helpers.R")
+
+student_id <- 5146
+cutoff <- 0.3
+```
+
+## The population
+
+This is the machine failure model from the class handout. X is the time a machine runs before it fails. After every failure the rate for the next run changes based on the last run:
+
+rate = 1 × exp(1.25 × (previous time - 1))
+
+So a long run (more than 1) makes the next rate higher and the next run shorter, and a short run makes the next one longer. I used the same parameters as the handout: baseline rate 1, beta 1.25, reference time 1.
+
+Each run comes from an exponential distribution, but the rate depends on the run before, so the runs are not independent. That's the CLT assumption this process breaks. The handout points out that the rate changes from one run to the next, so the runs don't all come from one fixed exponential. But once a machine has been running for a while, every run has the same long-run distribution, so I treat this as a dependence problem more than an identical-distribution problem. The variance is finite. The lowest the rate can ever go is exp(-1.25) ≈ 0.29 (right after a run of length 0), so no run can have a longer tail than an Exponential(0.29).
+
+There's no formula for the long-run mean or sd of this process that I could find, so I estimated them from one long run of a million failures, using the same loop as the handout:
+
+```{r}
+#| label: long-run
+baseline_rate <- 1
+beta <- 1.25
+reference_time <- 1
+
+set.seed(student_id)
+n_long <- 1000000
+failure_time <- numeric(n_long)
+failure_time[1] <- rexp(1, rate = baseline_rate)
+
+for (t in 2:n_long) {
+  failure_rate <- baseline_rate * exp(beta * (failure_time[t - 1] - reference_time))
+  failure_time[t] <- rexp(1, rate = failure_rate)
+}
+
+# drop the first 1,000 so the starting value doesn't matter
+long_run <- failure_time[-(1:1000)]
+
+pop_mean <- mean(long_run)
+pop_sd <- sd(long_run)
+pop_skew <- skewness(long_run)
+
+round(c(pop_mean = pop_mean, pop_sd = pop_sd, pop_skew = pop_skew,
+        pop_kurtosis = kurtosis(long_run), share_under_0.25 = mean(long_run < 0.25),
+        share_over_10 = mean(long_run > 10), longest = max(long_run)), 4)
+
+# how much each run is related to the runs before it
+rho <- acf(long_run, lag.max = 40, plot = FALSE)$acf[-1]
+round(rho[1:6], 3)
+```
+
+```{r}
+#| label: population-plot
+#| fig-width: 10
+#| fig-height: 4
+#| fig-cap: "Left: 60 runs in a row. Right: all long-run operating times under 10, red = Exponential(1) for comparison."
+old_par <- par(mfrow = c(1, 2))
+
+plot(long_run[1:60], type = "b", pch = 16, cex = 0.6, col = "darkorange",
+     xlab = "Failure number", ylab = "Operating time", main = "60 runs in a row")
+
+hist(long_run[long_run < 10], breaks = 40, probability = TRUE, col = "darkorange", border = "white",
+     main = "Long-run operating times", xlab = "Operating time")
+curve(dexp(x, rate = 1), from = 0, add = TRUE, col = "firebrick", lwd = 2)
+
+par(old_par)
+```
+
+The left plot shows the zigzag: a long run is usually followed by a short one. The long-run mean is 1.67, not 1. I didn't expect that, since the baseline rate is 1. My guess is that it's lopsided. After a run near 0 the next one averages exp(1.25) ≈ 3.5, but after a long run the next one averages close to 0 and can't go any lower. And runs near 0 are common. The sd is 2.55, while an Exponential(1) has sd 1. The histogram has a lot more very short runs than the red curve (36% are under 0.25, compared with 22% for an Exponential(1)) and a longer right tail. About 1.8% of runs are over 10, and the longest one was about 49. Skewness is 2.89 (an Exponential(1) has 2) and kurtosis is 15.4. Each run has a correlation of -0.37 with the run right before it and +0.34 with the run two back, and after that it keeps switching sign and getting smaller.
+
+## What I expected before running anything
+
+If the runs were independent, I could use the same formulas as the exponential file with the long-run skewness and kurtosis. Skewness would need n of about 93 to get under 0.3, and kurtosis only about 41. The project description says that with dependence "the effective sample size is smaller than it appears," so I expected two things: it would take more than 93, and the real SE would be bigger than σ/√n.
+
+```{r}
+#| label: prediction
+# what the usual formulas would say if the runs were independent
+c(n_for_skew_if_independent = (pop_skew / cutoff)^2,
+  n_for_kurt_if_independent = (kurtosis(long_run) - 3) / cutoff)
+```
+
+## Simulation
+
+For a sample of size n, I let a machine run 50 failures first so it isn't still affected by how it started, then I average the next n operating times. I do that for 10,000 machines.
+
+`run_simulation()` from my helper file draws each sample one at a time, and with a loop inside every sample that was too slow. So here I run all 10,000 machines side by side: each step of the loop moves every machine forward by one failure.
+
+```{r}
+#| label: run
+run_machines <- function(n, number_of_samples = 10000, burn_in = 50) {
+  x <- rexp(number_of_samples, rate = baseline_rate)
+  total <- numeric(number_of_samples)
+  for (t in 1:(burn_in + n)) {
+    failure_rate <- baseline_rate * exp(beta * (x - reference_time))
+    x <- rexp(number_of_samples, rate = failure_rate)
+    if (t > burn_in) total <- total + x
+  }
+  total / n
+}
+
+# same output as run_simulation(), so smallest_n() and plot_trends() still work
+dependent_simulation <- function(seed, n_values = c(2:20, seq(25, 100, by = 5), seq(125, 500, by = 25))) {
+  set.seed(seed)
+  results <- data.frame()
+  all_means <- list()
+
+  for (n in n_values) {
+    sample_means <- run_machines(n)
+    all_means[[as.character(n)]] <- sample_means
+
+    results <- rbind(results, data.frame(
+      n         = n,
+      mean      = mean(sample_means),
+      sd        = sd(sample_means),
+      theory_se = pop_sd / sqrt(n),
+      skewness  = skewness(sample_means),
+      kurtosis  = kurtosis(sample_means),
+      shapiro_w = unname(shapiro.test(sample(sample_means, 5000))$statistic)
+    ))
+  }
+
+  results$sd_error <- abs(results$sd - results$theory_se) / results$theory_se
+  list(results = results, means = all_means)
+}
+
+sim <- dependent_simulation(student_id)
+results <- sim$results
+```
+
+## The standard error
+
+The usual σ/√n assumes the values are independent. When they aren't, the variance of the total also includes the covariance between every pair of runs. Using the correlations from the long run, the SE becomes:
+
+SE = (σ/√n) × sqrt(1 + 2 × sum over k of (1 - k/n) × rho_k)
+
+```{r}
+#| label: standard-error
+adjusted_se <- function(n) {
+  k <- seq_len(min(n - 1, 40))
+  pop_sd / sqrt(n) * sqrt(1 + 2 * sum((1 - k / n) * rho[k]))
+}
+
+results_adj <- results
+results_adj$theory_se <- sapply(results$n, adjusted_se)
+results_adj$sd_error <- abs(results$sd - results_adj$theory_se) / results_adj$theory_se
+
+se_rows <- results$n %in% c(2, 5, 10, 30, 100, 300, 500)
+knitr::kable(data.frame(
+  n = results$n[se_rows],
+  simulated_sd = round(results$sd[se_rows], 4),
+  usual_formula = round(results$theory_se[se_rows], 4),
+  usual_error = round(results$sd_error[se_rows], 3),
+  adjusted = round(results_adj$theory_se[se_rows], 4),
+  adjusted_error = round(results_adj$sd_error[se_rows], 3)
+))
+
+c(min_usual_error = round(min(results$sd_error), 3),
+  max_usual_error = round(max(results$sd_error), 3),
+  max_adjusted_error = round(max(results_adj$sd_error), 3),
+  long_run_factor = round(1 + 2 * sum(rho), 3))
+
+# biggest correlation from 13 runs back on
+round(max(abs(rho[13:40])), 3)
+```
+
+My second guess was wrong. The usual σ/√n is off by 12% to 19% at every n, but it's too big, not too small. The adjusted formula is never more than 2.4% off. The reason is the negative correlation: a long run is usually followed by a short one, so they partly cancel out in the average. Adding up all the correlations gives a factor of 0.733 instead of 1, so for large n the real SE is about sqrt(0.733) ≈ 0.86 times σ/√n. That means n of these runs pin down the mean about as well as 1.36n independent runs would. At n = 30 that's like 41 independent runs. So here the effective sample size is bigger than it looks. The warning in the project description fits positive dependence, where similar values come in streaks. This process goes back and forth, so it works the other way. I used the correlations up to 40 runs back. From 13 runs back on, none of them is bigger than 0.008 in size, so going further wouldn't change anything.
+
+## What happens as n grows
+
+```{r}
+#| label: trends
+#| fig-width: 9
+#| fig-height: 7
+#| fig-cap: "Red dashed (spread) = dependence-adjusted SE. Red dashed (skewness) = what it would be if the runs were independent. Gray dotted = my cutoff."
+plot_trends(results_adj, pop_skew = pop_skew, cutoff = cutoff)
+```
+
+```{r}
+#| label: table
+show_rows <- results$n %in% c(2, 5, 10, 30, 50, 100, 150, 175, 200, 250, 300, 500)
+knitr::kable(round(results_adj[show_rows, ], 3), row.names = FALSE)
+
+c(max_mean_gap = round(max(abs(results$mean - pop_mean)), 3))
+```
+
+The average of the sample means is within 0.016 of 1.67 at every n, so the center is fine. The shape is the slow part. Skewness sits above the red dashed line (what it would be for independent runs) at every n, and at n = 100 it's 0.415 compared with 0.289, about 1.4 times higher. Kurtosis is 11.1 at n = 2 and doesn't stay within 0.3 of 3 until n = 90. Shapiro W is 0.79 at n = 2 and 0.97 at n = 30.
+
+## A closer look
+
+```{r}
+#| label: closer-look
+#| fig-width: 10
+#| fig-height: 6
+#| fig-cap: "Red curve = normal with the dependence-adjusted SE."
+chosen_n <- smallest_n(results_adj, cutoff = cutoff)
+show_n <- c(5, 30, 100, chosen_n)
+
+old_par <- par(mfrow = c(2, 4))
+
+for (n in show_n) {
+  m <- sim$means[[as.character(n)]]
+  hist(m, breaks = 40, probability = TRUE, col = "steelblue", border = "white",
+       main = paste("n =", n), xlab = "Sample mean")
+  curve(dnorm(x, mean = pop_mean, sd = adjusted_se(n)), add = TRUE, col = "firebrick", lwd = 2)
+}
+
+for (n in show_n) {
+  m <- sim$means[[as.character(n)]]
+  qqnorm(m, main = paste("Q-Q, n =", n), pch = 16, cex = 0.3, col = "steelblue")
+  qqline(m, col = "firebrick", lwd = 2)
+}
+
+par(old_par)
+```
+
+At n = 5 the histogram is piled up on the left with a long right tail, and the red curve doesn't fit at all. At n = 30 the peak is clearly to the left of the red curve and the right tail is too long. In the Q-Q plot both ends bend up away from the line: the smallest means aren't as small as a normal would give, and the biggest ones are bigger. At n = 100 the histogram is close to the curve, but its right tail still runs a bit past it, and the Q-Q plot still bends at both ends. At n = 300 the points follow the line through the middle, and both ends still sit a little above it.
+
+## My decision
+
+```{r}
+#| label: decision
+# with the usual sigma / sqrt(n)
+smallest_n(results, cutoff = cutoff)
+
+# with the dependence-adjusted SE
+chosen_n
+```
+
+With the usual formula my rule never passes, because the sd check fails at every n (the usual SE is always at least 11.9% too big). Like in the basketball file, that's the formula failing, not the shape. With the dependence-adjusted SE, the smallest n I can defend is **n = `r chosen_n`**. Skewness is what holds it back. It's under 0.3 from n = 200 on, except at n = 275 where it comes back at 0.307, and my keep-passing rule doesn't let that slide. Kurtosis has been fine since n = 90. So my first guess was right: it took longer than the 93 I'd expect for independent runs, about 3 times longer, and 10 times the usual 30.
+
+Same data, different cutoff (with the adjusted SE):
+
+```{r}
+#| label: cutoff-table
+data.frame(
+  cutoff = c(0.5, 0.3, 0.2, 0.1, 0.05),
+  smallest_n = sapply(c(0.5, 0.3, 0.2, 0.1, 0.05), function(k) smallest_n(results_adj, cutoff = k))
+)
+```
+
+With a looser 0.5 cutoff it's 90, and with 0.2 it's 475, the second-biggest n I tried. At 0.1 and 0.05 nothing passes. Even with the loosest cutoff, 30 isn't close.
+
+## Does the seed matter?
+
+```{r}
+#| label: other-seed
+results_167 <- dependent_simulation(167)$results
+results_167$theory_se <- sapply(results_167$n, adjusted_se)
+results_167$sd_error <- abs(results_167$sd - results_167$theory_se) / results_167$theory_se
+smallest_n(results_167, cutoff = cutoff)
+
+seed_rows <- results$n %in% seq(150, 300, by = 25)
+print(data.frame(
+  n = results$n[seed_rows],
+  skew_5146 = round(results$skewness[seed_rows], 3),
+  skew_167 = round(results_167$skewness[seed_rows], 3)
+), row.names = FALSE)
+```
+
+With seed 167 the answer is 150, half of what I got with my student ID. From n = 150 to 275 the skewness bounces between 0.24 and 0.36 with both seeds, right around my 0.3 cutoff, so a little simulation noise decides which n passes first. My honest answer is somewhere between 150 and 300, which is 5 to 10 times the rule of 30.
+
+## What surprised me
+
+I expected dependence to make everything worse. Instead it went two ways. The mean is more precise than σ/√n says, because long and short runs cancel each other out. But the shape is slower than for independent runs, and n = 30 is nowhere close. My guess at why: the back-and-forth cancels a lot of the spread (for large n the variance of the mean is only 0.733 of what independent runs would give), but it doesn't do as much to the rare very long runs that make the right tail. Skewness is measured relative to the spread, so cutting the spread more than the tail means more skewness. The other thing I didn't see coming was the long-run mean of 1.67. The baseline rate is 1, so I assumed the mean would be 1 and the sd would be 1 like an Exponential(1). If I had used those, the SE check would have been off by more than a factor of 2.
