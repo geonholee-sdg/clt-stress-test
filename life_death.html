@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Geonho Lee">
-<meta name="dcterms.date" content="2026-10-10">
+<meta name="dcterms.date" content="2026-10-11">
 
 <title>Life/Death population</title>
 <style>
@@ -2225,7 +2225,7 @@ vertical-align: -.125em;
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Life/Death population</h1>
-<p class="subtitle lead">Part of my CLT stress test. Extra credit: a made-up age-at-death distribution with two humps.</p>
+<p class="subtitle lead">Part of my CLT stress test. A made-up age-at-death distribution with two humps.</p>
 </div>
 
 
@@ -2242,7 +2242,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 10, 2026</p>
+      <p class="date">October 11, 2026</p>
     </div>
   </div>
   
@@ -2262,7 +2262,7 @@ vertical-align: -.125em;
 </div>
 <section id="the-population" class="level2" data-number="1">
 <h2 data-number="1" class="anchored" data-anchor-id="the-population"><span class="header-section-number">1</span> The population</h2>
-<p>This is the age-at-death distribution from the class handout. Ages go from 0 to 100. There’s a spike of deaths at age 0 that drops off fast, and then a second, bell-shaped hump centered at 65. The handout says it was built to copy the shape of a graph, so it’s not real mortality data. I built it the same way the handout does. The draws are independent, all from the same distribution, and since age is stuck between 0 and 100 the variance is finite, so all three CLT assumptions hold.</p>
+<p>This is the age-at-death distribution from the class handout. Ages go from 0 to 100. There is a spike of deaths at age 0 that drops off fast, and then a second, bell-shaped hump centered at 65. The handout says it was built to copy the shape of a graph, so it is not real mortality data. I built it the same way the handout does. The draws are independent, all from the same distribution, and since age is stuck between 0 and 100 the variance is finite, so all three CLT assumptions hold.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># same construction as the class handout</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>age <span class="ot">&lt;-</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">100</span></span>
@@ -2297,7 +2297,7 @@ vertical-align: -.125em;
 </div>
 </div>
 </div>
-<p>The mean is 49.98 and the sd is 27.63, the same as in the handout. The skewness is -0.86, so it leans left (the early deaths pull the mean down), and the kurtosis is 2.21, so its tails are lighter than a normal. One odd thing is that the mean, about 50, isn’t a very common age to die here. Age 50 has about 1% of deaths while age 65 has about 3%.</p>
+<p>The mean is 49.98 and the sd is 27.63, the same as in the handout. The skewness is -0.86, so it leans left (the early deaths pull the mean down), and the kurtosis is 2.21, so its tails are lighter than a normal. One odd thing is that the mean, about 50, is not a very common age to die here. Age 50 has about 1% of deaths while age 65 has about 3%.</p>
 </section>
 <section id="what-i-expected-before-running-anything" class="level2" data-number="2">
 <h2 data-number="2" class="anchored" data-anchor-id="what-i-expected-before-running-anything"><span class="header-section-number">2</span> What I expected before running anything</h2>
@@ -2315,7 +2315,7 @@ vertical-align: -.125em;
 </section>
 <section id="simulation" class="level2" data-number="3">
 <h2 data-number="3" class="anchored" data-anchor-id="simulation"><span class="header-section-number">3</span> Simulation</h2>
-<p>Same setup as the other files: for each n I take 10,000 samples of size n and keep the mean of each one.</p>
+<p>For each n I draw 10,000 samples of n deaths and keep the mean age of each sample. Same 51 values of n as the exponential file.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>sim <span class="ot">&lt;-</span> <span class="fu">run_simulation</span>(</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">generator =</span> rdeath,</span>
@@ -2508,7 +2508,7 @@ vertical-align: -.125em;
        0.332        0.014 </code></pre>
 </div>
 </div>
-<p>The mean is always within about 0.33 years of 49.98, and the sd always stays within 1.4% of sigma/sqrt(n). Kurtosis only fails at n = 2 and 3 (2.62 and 2.63). Skewness is what holds it back. It starts at -0.61 at n = 2, follows the red theory line up toward 0, and stays outside my cutoff through n = 10. Shapiro W goes from 0.928 at n = 2 to 0.999 at n = 30.</p>
+<p>The mean is always within about 0.33 years of 49.98, and the sd always stays within 1.4% of σ/√n. Kurtosis only fails at n = 2 and 3 (2.62 and 2.63). Skewness is what holds it back. It starts at -0.61 at n = 2, follows the red theory line up toward 0, and stays outside my cutoff through n = 10. Shapiro W goes from 0.928 at n = 2 to 0.999 at n = 30.</p>
 </section>
 <section id="a-closer-look" class="level2" data-number="5">
 <h2 data-number="5" class="anchored" data-anchor-id="a-closer-look"><span class="header-section-number">5</span> A closer look</h2>
@@ -2523,7 +2523,7 @@ vertical-align: -.125em;
 </div>
 </div>
 </div>
-<p>The n = 2 histogram surprised me. It has three bumps instead of two. I think it’s because two random deaths can be both young, one young and one old, or both old, and each of those lands in a different place:</p>
+<p>The n = 2 histogram has three bumps instead of two. I think it is because two random deaths can be both young, one young and one old, or both old, and each of those lands in a different place:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># share of the n = 2 means near each bump</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>m2 <span class="ot">&lt;-</span> sim<span class="sc">$</span>means[[<span class="st">&quot;2&quot;</span>]]</span>
@@ -2540,7 +2540,7 @@ vertical-align: -.125em;
  0.0593808  0.3686019  0.5720173 </code></pre>
 </div>
 </div>
-<p>The guess gives about 6%, 37% and 57%, and the simulation gives about 6%, 38% and 56%. My cut points are rough, so they don’t line up perfectly, but the three bumps are those three cases.</p>
+<p>The guess gives about 6%, 37% and 57%, and the simulation gives about 6%, 38% and 56%. My cut points are rough, so they do not line up perfectly, but the three bumps are those three cases.</p>
 <p>At n = 5 the empty stretch between the first two bumps (around ages 11 to 21 at n = 2) is gone, but the histogram is still lumpy, the Q-Q plot still wiggles in the middle, and the top end bends well under the line. At n = 11 the histogram is a smooth bell. The Q-Q plot is straight through the middle and both ends dip a little under the line, which is what a slight left skew looks like. By n = 30 the points sit on the line except for the very top.</p>
 </section>
 <section id="my-decision" class="level2" data-number="6">
@@ -2551,7 +2551,7 @@ vertical-align: -.125em;
 <pre><code>[1] 11</code></pre>
 </div>
 </div>
-<p>With my rule (skewness and kurtosis within 0.3 of normal, sd within 3% of theory, and it has to stay that way for every bigger n), the smallest n I can defend is <strong>n = 11</strong>. That’s 2 more than I predicted, so I looked at skewness around the cutoff:</p>
+<p>Same rule as the other files: skewness and kurtosis within 0.3 of normal, sd within 3% of theory, and it has to keep passing for every bigger n. The smallest n that passes is <strong>n = 11</strong>. That is 2 more than I predicted, so I looked at skewness around the cutoff:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>around <span class="ot">&lt;-</span> results[results<span class="sc">$</span>n <span class="sc">%in%</span> <span class="dv">7</span><span class="sc">:</span><span class="dv">13</span>, <span class="fu">c</span>(<span class="st">&quot;n&quot;</span>, <span class="st">&quot;skewness&quot;</span>)]</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>around<span class="sc">$</span>formula <span class="ot">&lt;-</span> pop_skew <span class="sc">/</span> <span class="fu">sqrt</span>(around<span class="sc">$</span>n)</span>
@@ -2583,7 +2583,7 @@ vertical-align: -.125em;
 5   0.05        500</code></pre>
 </div>
 </div>
-<p>With a 0.5 cutoff, n = 3 is enough, and even with a strict 0.2 cutoff the answer is exactly 30. So for this population, 30 works under any of the cutoffs I’d actually use. Like in the other files, I don’t put much weight on the 0.1 and 0.05 rows because of simulation noise.</p>
+<p>With a 0.5 cutoff, n = 3 is enough, and even with a strict 0.2 cutoff the answer is exactly 30. So for this population, 30 works under any of the cutoffs I would actually use. Like in the other files, I do not put much weight on the 0.1 and 0.05 rows because of simulation noise.</p>
 </section>
 <section id="does-the-seed-matter" class="level2" data-number="7">
 <h2 data-number="7" class="anchored" data-anchor-id="does-the-seed-matter"><span class="header-section-number">7</span> Does the seed matter?</h2>
@@ -2602,7 +2602,7 @@ vertical-align: -.125em;
 </section>
 <section id="what-surprised-me" class="level2" data-number="8">
 <h2 data-number="8" class="anchored" data-anchor-id="what-surprised-me"><span class="header-section-number">8</span> What surprised me</h2>
-<p>The biggest surprise was that this population, which looks like the strangest one in the project with a spike at 0 and a hump at 65, was one of the fastest to become normal. The shape looking weird doesn’t matter much. What matters is how lopsided it is, and a skewness of -0.86 isn’t that much. The other was the three bumps at n = 2. I expected the averages to just get squeezed toward the middle, but with two people you can actually see the three combinations (both young, one of each, both old) before it all blends together.</p>
+<p>The formula said this one would be fast, and it was. It still looked wrong while it was happening. The population with a spike at 0 and a hump at 65 is the strangest-looking one in the project, and it beat the binomial, which looks a lot tamer. The reason is that its skewness is only -0.86. How strange the shape looks does not matter much on its own. The other surprise was the three bumps at n = 2. Averages usually just get squeezed toward the middle, but with two people you can actually see the three combinations (both young, one of each, both old) before it all blends together.</p>
 </section>
 
 </main>

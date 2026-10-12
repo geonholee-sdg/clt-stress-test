@@ -23,7 +23,7 @@ cutoff <- 0.3
 
 ## The population
 
-One roll of a fair die: the values 1 to 6, each with probability 1/6. The mean is 3.5 and the sd is about 1.71. It's perfectly symmetric, so skewness is 0, but it's flat instead of bell shaped. Its kurtosis is about 1.73 (excess kurtosis -1.27), so the tails are lighter than a normal. It's also discrete, which none of my other required populations are except the binomial. The rolls are independent, all from the same distribution, and the variance is finite, so all three CLT assumptions hold.
+One roll of a fair die: the values 1 to 6, each with probability 1/6. The mean is 3.5 and the sd is about 1.71. It is perfectly symmetric, so skewness is 0, but it is flat instead of bell shaped. Its kurtosis is about 1.73 (excess kurtosis -1.27), so the tails are lighter than a normal. It is also discrete, like the binomial, the basketball shots and the ages in the life/death file, but it is the only one of those that is symmetric. The rolls are independent, all from the same distribution, and the variance is finite, so all three CLT assumptions hold.
 
 ```{r}
 #| label: population-plot
@@ -48,7 +48,7 @@ abline(h = 1/6, col = "firebrick", lwd = 2, lty = 2)
 
 ## What I expected before running anything
 
-Skewness starts at 0, so it should never be the problem. The thing to watch is kurtosis. The excess kurtosis of the mean is -1.27/n, and to get that within 0.3 of zero I need n of about 4.2. So I predicted n = 5. That's way less than 30, but it's also not n = 2, even though the population has no skew at all.
+Skewness starts at 0, so it should never be the problem. The thing to watch is kurtosis. The excess kurtosis of the mean is -1.27/n, and to get that within 0.3 of zero I need n of about 4.2. So I predicted n = 5. That is way less than 30, but it is also not n = 2, even though the population has no skew at all.
 
 ```{r}
 #| label: prediction
@@ -60,7 +60,7 @@ c(n_for_skew = n_for_skew, n_for_kurt = n_for_kurt)
 
 ## Simulation
 
-Same setup as the other files: for each n I take 10,000 samples of size n and keep the mean of each one.
+For each n I take 10,000 samples of n rolls and keep the mean of each sample. Same 51 values of n as the exponential file.
 
 ```{r}
 #| label: run
@@ -94,7 +94,7 @@ c(max_mean_gap = round(max(abs(results$mean - pop_mean)), 3),
   max_abs_skew = round(max(abs(results$skewness)), 3))
 ```
 
-The mean is never more than 0.023 away from 3.5, and the sd is always within 2% of sigma/sqrt(n) (worst was 1.8%, at n = 20). Skewness never gets anywhere near my cutoff. The biggest value over every n was 0.04, which is why the gray cutoff lines don't even show up on the skewness plot. So kurtosis is the number that matters here. It starts at 2.35 at n = 2, too flat, and up to n = 5 it sits almost exactly on the red theory line. After that it bounces around the line by up to about 0.12 (the biggest jump is at n = 16), close to the 0.1 of noise I saw in the normal file. Shapiro W goes from 0.975 at n = 2 to 0.999 by n = 30.
+The mean is never more than 0.023 away from 3.5, and the sd is always within 2% of σ/√n (worst was 1.8%, at n = 20). Skewness never gets anywhere near my cutoff. The biggest value over every n was 0.04, which is why the gray cutoff lines do not even show up on the skewness plot. So kurtosis is the number that matters here. It starts at 2.35 at n = 2, too flat, and up to n = 5 it sits almost exactly on the red theory line. After that it bounces around the line by up to about 0.12 (the biggest jump is at n = 16), close to the 0.1 of noise I saw in the normal file. Shapiro W goes from 0.975 at n = 2 to 0.999 by n = 30.
 
 ## A closer look
 
@@ -112,9 +112,9 @@ plot_means(sim, show_n = c(2, chosen_n, 30, 100), pop_mean = pop_mean, pop_sd = 
 sapply(c("2", "5", "30"), function(k) length(unique(sim$means[[k]])))
 ```
 
-These plots look strange at first and it took me a minute to figure out why. With a die, the total of n rolls can only be a whole number, so the mean can only land on a few values. At n = 2 the mean only took 11 different values, at n = 5 it took 26, and at n = 30 it took 69. That's why the histograms at n = 2, 5 and 30 look like a comb with gaps, and the bars stick out above the red curve. It's the histogram bins not lining up with those values, not the shape being wrong. By n = 100 the values are close enough together that the histogram fills in.
+These plots look strange at first and it took me a minute to figure out why. With a die, the total of n rolls can only be a whole number, so the mean can only land on a few values. At n = 2 the mean only took 11 different values, at n = 5 it took 26, and at n = 30 it took 69. That is why the histograms at n = 2, 5 and 30 look like a comb with gaps, and the bars stick out above the red curve. The histogram bins just do not line up with those values. The shape itself is fine. By n = 100 the values are close enough together that the histogram fills in.
 
-The Q-Q plots show the same thing as stairs. At n = 2 the steps are big and the ends go flat, because the mean can't go below 1 or above 6. At n = 5 the steps are small and follow the line, except the last few points at each end bend in toward the middle. That's the light tails again (kurtosis is still 2.76 at n = 5), but it's small. For a discrete population the mean is never going to be truly smooth, so for the Q-Q check I'm asking whether the stairs follow the line, not whether they disappear.
+The Q-Q plots show the same thing as stairs. At n = 2 the steps are big and the ends go flat, because the mean cannot go below 1 or above 6. At n = 5 the steps are small and follow the line, except the last few points at each end bend in toward the middle. That is the light tails again (kurtosis is still 2.76 at n = 5), but it is small. For a discrete population the mean is never going to be truly smooth, so when I look at the Q-Q plot I am asking whether the stairs follow the line, not whether they disappear.
 
 ## My decision
 
@@ -123,7 +123,7 @@ The Q-Q plots show the same thing as stairs. At n = 2 the steps are big and the 
 chosen_n
 ```
 
-With my rule (skewness and kurtosis within `r cutoff` of normal, sd within 3% of theory, and it has to stay that way for every bigger n), the smallest n I can defend is **n = `r chosen_n`**. That matches my prediction exactly. n = 2, 3 and 4 fail only on kurtosis (2.35, 2.59 and 2.67), and at n = 5 it's 2.76.
+My rule is the same in every file: skewness and kurtosis within `r cutoff` of a normal, sd within 3% of theory, and it has to keep passing for every bigger n. The smallest n that passes is **n = `r chosen_n`**. That matches my prediction exactly. n = 2, 3 and 4 fail only on kurtosis (2.35, 2.59 and 2.67), and at n = 5 it is 2.76.
 
 Same data, different cutoff:
 
@@ -135,7 +135,7 @@ data.frame(
 )
 ```
 
-From 0.5 down to 0.2 the answer only moves from 3 to 8. At 0.1 it jumps to 500, the last n I tried, and at 0.05 not even n = 500 passes (that's what the NA means). It's the same thing I found in the normal file. Below about 0.1, the cutoff is mostly catching simulation noise, not the die.
+From 0.5 down to 0.2 the answer only moves from 3 to 8. At 0.1 it jumps to 500, the last n I tried, and at 0.05 not even n = 500 passes (that is what the NA means). It is the same thing I found in the normal file. Below about 0.1, the cutoff is mostly catching simulation noise, not the die.
 
 ## Does the seed matter?
 
@@ -149,8 +149,8 @@ sim_167 <- run_simulation(
 smallest_n(sim_167$results, cutoff = cutoff)
 ```
 
-Seed 167 also gives n = 5. Unlike the exponential, the kurtosis curve crosses my cutoff steeply instead of creeping along it, so a different seed doesn't move the answer.
+Seed 167 also gives n = 5. Unlike the exponential, the kurtosis curve crosses my cutoff steeply instead of creeping along it, so a different seed does not move the answer.
 
 ## What surprised me
 
-That a population with zero skew still isn't normal at n = 2. If I had only checked skewness, the die would have passed right away. The kurtosis check is what caught it, and that's a good reason not to rely on one number. The other surprise was the comb-shaped histograms. They looked like a problem but were just the die being discrete, and the Q-Q plot made that much easier to see than the histogram did.
+The main thing I would point out is that a population with zero skew still is not normal at n = 2. I knew kurtosis would be the number to watch, but if I had only checked skewness, the die would have passed right away. That is a good reason not to rely on one number. The other surprise was the comb-shaped histograms. They looked like a problem but were just the die being discrete, and the Q-Q plot made that much easier to see than the histogram did.

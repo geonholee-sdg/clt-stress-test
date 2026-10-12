@@ -23,7 +23,7 @@ cutoff <- 0.3
 
 ## The population
 
-The exponential is the waiting time distribution from class, like how long until the next customer walks in. With rate = 1 the mean and sd are both 1, but the shape is nothing like a normal. Most values are small and there's a long tail to the right (skewness 2, kurtosis 9 where a normal is 3). Out of the five populations I expected this one to give the CLT the hardest time, other than Cauchy. The draws are independent, all from the same distribution, and the variance is finite (it's 1), so all three CLT assumptions hold here. If the CLT works anywhere, it should work here. It just might be slow.
+The exponential is the waiting time distribution from class, like how long until the next customer walks in. With rate = 1 the mean and sd are both 1, but the shape is nothing like a normal. Most values are small and there is a long tail to the right (skewness 2, kurtosis 9 where a normal is 3). Out of the five populations on the assignment list, this one should give the CLT the hardest time, other than the Cauchy. The draws are independent, all from the same distribution, and the variance is finite (it is 1), so all three CLT assumptions hold here. So the theorem does apply. It just might be slow.
 
 ```{r}
 #| label: population-plot
@@ -43,7 +43,7 @@ curve(dexp(x, rate = 1), from = 0, add = TRUE, col = "firebrick", lwd = 2)
 
 ## What I expected before running anything
 
-From class, the skewness of the sample mean shrinks like 2/sqrt(n) and the excess kurtosis like 6/n. With my cutoff of 0.3, skewness needs n of about 45 and kurtosis only needs 20. So my guess was that skewness would be the thing holding it back and I'd end up somewhere around 45. That's already more than 30.
+From class, the skewness of the sample mean shrinks like 2/sqrt(n) and the excess kurtosis like 6/n. With my cutoff of 0.3, skewness needs n of about 45 and kurtosis only needs 20. So my guess was that skewness would be the thing holding it back and I would end up somewhere around 45. That is already more than 30.
 
 ```{r}
 #| label: prediction
@@ -57,7 +57,7 @@ c(n_for_skew = n_for_skew, n_for_kurt = n_for_kurt)
 
 ## Simulation
 
-For each n I take 10,000 samples of size n, save the mean of each one, and summarize those 10,000 means. The loop lives in `clt_helpers.R`.
+For each n I take 10,000 samples of size n, save the mean of each one, and summarize those 10,000 means. I use the same 51 values of n in every file: every n from 2 to 20, then 25 to 100 in steps of 5, then 125 to 500 in steps of 25, which is the grid from the 9/14 class script. It is dense where n is small, which is where things change fastest, and spreads out after 100. The loop lives in `clt_helpers.R`.
 
 ```{r}
 #| label: run
@@ -89,7 +89,7 @@ knitr::kable(round(results[show_rows, ], 3), row.names = FALSE)
 print(round(results[which.max(results$sd_error), c("n", "sd_error")], 3), row.names = FALSE)
 ```
 
-The mean column sits at 1.00 the whole way, which is what it should be. The sd column matches sigma/sqrt(n) almost everywhere. It's within about 1% for most n, and the worst gap was 2.9% at n = 4. That part isn't really the CLT though, sigma/sqrt(n) is true for any n, so for me it's more of a check that the simulation is working. Skewness is the slow part. It's 0.38 at n = 30 and 0.302 at n = 45, which misses my cutoff by 0.002. Kurtosis stays under 3.3 from n = 25 on, close to the 20 I predicted, so it never ends up being the problem. Shapiro W creeps up from 0.900 at n = 2 to 0.999 at n = 500 (the test only takes 5,000 values, so it runs on a random half of the means). With that many points the test is so sensitive that I only use W as a trend, not to decide anything.
+The mean column never gets more than about 0.01 away from 1, which is what it should be. The sd column matches σ/√n almost everywhere. It is within about 1% for most n, and the worst gap was 2.9% at n = 4. That part is not really the CLT, though. σ/√n is true for any n, so for me it is more of a check that the simulation is working. Skewness is the slow part. It is 0.38 at n = 30 and 0.302 at n = 45, which misses my cutoff by 0.002. Kurtosis stays under 3.3 from n = 25 on, close to the 20 I predicted, so it never ends up being the problem. Shapiro W goes up slowly from 0.900 at n = 2 to 0.999 at n = 500 (the test only takes 5,000 values, so it runs on a random half of the means). With that many points the test is so sensitive that I only use W as a trend, not to decide anything.
 
 ## A closer look
 
@@ -101,7 +101,7 @@ chosen_n <- smallest_n(results, cutoff = cutoff)
 plot_means(sim, show_n = c(5, 30, chosen_n, 200), pop_mean = pop_mean, pop_sd = pop_sd)
 ```
 
-At n = 5 the histogram is clearly lopsided and the Q-Q plot curves up hard on the right. At n = 30 the histogram already looks pretty normal, which is probably why people trust 30. But the Q-Q plot still bends above the line on the right end, and the left end sits above the line too, so both tails are off. At n = 65 the bend is much smaller but I can still see it in the last few points, and by n = 200 it's basically on the line.
+At n = 5 the histogram is clearly lopsided and the Q-Q plot curves up hard on the right. At n = 30 the histogram already looks pretty normal, which is probably why people trust 30. But the Q-Q plot still bends above the line on the right end, and the left end sits above the line too, so both tails are off. At n = 65 the bend is smaller but still there at the top end, and by n = 200 it is basically on the line.
 
 ## My decision
 
@@ -112,19 +112,19 @@ chosen_n
 
 With my rule (skewness and kurtosis within `r cutoff` of normal, sd within 3% of theory, and it has to stay that way for every bigger n), the smallest n I can defend is **n = `r chosen_n`**.
 
-n = 30 doesn't make it because skewness is still 0.38 there, about 25% over my cutoff. The histogram looks fine at 30, but the numbers and the Q-Q plot both say the right tail isn't there yet.
+n = 30 does not make it because skewness is still 0.38 there, about 25% over my cutoff. The histogram looks fine at 30, but the numbers and the Q-Q plot both say the right tail is not there yet.
 
 Same data, different cutoff:
 
 ```{r}
 #| label: cutoff-table
 data.frame(
-  cutoff = c(0.5, 0.3, 0.2),
-  smallest_n = sapply(c(0.5, 0.3, 0.2), function(k) smallest_n(results, cutoff = k))
+  cutoff = c(0.5, 0.3, 0.2, 0.1, 0.05),
+  smallest_n = sapply(c(0.5, 0.3, 0.2, 0.1, 0.05), function(k) smallest_n(results, cutoff = k))
 )
 ```
 
-This was the part I found most interesting. Loosen the cutoff to 0.5 and n = 17 is enough, so 30 passes easily. Tighten it to 0.2 and I need 95. So whether "30 is enough" is true depends a lot on how picky you are, and for this population it only works under the loose rule.
+This was the part I found most interesting. Loosen the cutoff to 0.5 and n = 17 is enough, so 30 passes easily. Tighten it to 0.2 and I need 95, and at 0.1 or 0.05 nothing passes, not even n = 500. So whether "30 is enough" is true depends a lot on how picky you are, and for this population it only works under the loose rule.
 
 ## Does the seed matter?
 
@@ -138,8 +138,8 @@ sim_167 <- run_simulation(
 smallest_n(sim_167$results, cutoff = cutoff)
 ```
 
-With seed 167 instead of my student ID, the answer moves from 65 down to 50. Skewness hovers right around 0.3 between n = 45 and 65, so a little randomness decides which side of the line it lands on. The exact number isn't stable, but the conclusion is: around 50 to 65, and not 30.
+With seed 167 instead of my student ID, the answer moves from 65 down to 50. Skewness hovers right around 0.3 between n = 45 and 65, so a little randomness decides which side of the line it lands on. The exact number is not stable, but the conclusion is: around 50 to 65, and not 30.
 
 ## What surprised me
 
-Two things. First, my prediction of 45 was almost exactly right. Skewness at n = 45 was 0.302, just over the line. Then n = 50 and 55 passed, but n = 60 came back at 0.303, and because of my keep-passing rule that pushed the answer up to 65. Second, I expected a different seed to move things by maybe 5. It moved by 15. When the cutoff sits where the curve is flattening out, a tiny bit of noise turns into a big change in n.
+Two things. First, my prediction of 45 was almost exactly right. Skewness at n = 45 was 0.302, just over the line. Then n = 50 and 55 passed, but n = 60 came back at 0.303, and because of my keep-passing rule that pushed the answer up to 65. Second, how much the seed mattered. Changing it moved the answer by 15, from 65 to 50, even though nothing about the population changed. When the cutoff sits where the curve is flattening out, a tiny bit of noise turns into a big change in n.

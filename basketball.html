@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Geonho Lee">
-<meta name="dcterms.date" content="2026-10-10">
+<meta name="dcterms.date" content="2026-10-11">
 
 <title>Non-identical Bernoulli (basketball shots)</title>
 <style>
@@ -2244,7 +2244,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 10, 2026</p>
+      <p class="date">October 11, 2026</p>
     </div>
   </div>
   
@@ -2264,7 +2264,7 @@ vertical-align: -.125em;
 </div>
 <section id="the-population" class="level2" data-number="1">
 <h2 data-number="1" class="anchored" data-anchor-id="the-population"><span class="header-section-number">1</span> The population</h2>
-<p>This is the fatigue example from the class handout. A player’s first shot goes in 90% of the time, and by the last shot it’s down to 50%, dropping in a straight line in between. Each shot is a 1 (make) or a 0 (miss), so the sample mean is just the shooting percentage for the game.</p>
+<p>This is the fatigue example from the class handout. A player’s first shot goes in 90% of the time, and by the last shot it is down to 50%, dropping in a straight line in between. Each shot is a 1 (make) or a 0 (miss), so the sample mean is just the shooting percentage for the game.</p>
 <p>The handout uses 20 shots. To try different n, I keep the same idea for any number of shots: the first shot is always 0.90, the last is always 0.50, and the rest are evenly spaced in between. So for every n the average probability is exactly 0.70.</p>
 <p>The shots are independent and each one has a finite variance, but they are not identically distributed, so one of the three CLT assumptions is broken. The handout says a normal approximation can still work “under additional conditions,” so this is a test of whether that happens here.</p>
 <div class="cell">
@@ -2292,7 +2292,7 @@ vertical-align: -.125em;
 </div>
 </div>
 </div>
-<p>There isn’t one population sd here, since every shot has its own. A 90% shot has sd sqrt(0.9 × 0.1) = 0.30, and a 50% shot has sd 0.50.</p>
+<p>There is not one population sd here, since every shot has its own. A 90% shot has sd sqrt(0.9 × 0.1) = 0.30, and a 50% shot has sd 0.50.</p>
 </section>
 <section id="what-i-expected-before-running-anything" class="level2" data-number="2">
 <h2 data-number="2" class="anchored" data-anchor-id="what-i-expected-before-running-anything"><span class="header-section-number">2</span> What I expected before running anything</h2>
@@ -2308,11 +2308,11 @@ vertical-align: -.125em;
   8.465608   4.126984 </code></pre>
 </div>
 </div>
-<p>That says about 9. My guess was that changing probabilities would make it a bit slower than that, since the shots aren’t identical. I also wasn’t sure the usual standard error σ/√n would still be right, because there’s no single σ.</p>
+<p>That says about 8.5, so 9. But the shots are not identical, so it is not obvious that number still applies. It is also not clear the usual standard error σ/√n is still right, because there is no single σ.</p>
 </section>
 <section id="simulation" class="level2" data-number="3">
 <h2 data-number="3" class="anchored" data-anchor-id="simulation"><span class="header-section-number">3</span> Simulation</h2>
-<p>For each n I simulate 10,000 games of n shots and keep the shooting percentage of each one. I also run a constant 70% shooter with the same seed so I can compare the two directly.</p>
+<p>For each n I simulate 10,000 games of n shots and keep the shooting percentage of each one. Same 51 values of n as the exponential file. I also run a constant 70% shooter with the same seed so I can compare the two directly.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>sim <span class="ot">&lt;-</span> <span class="fu">run_simulation</span>(</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">generator =</span> <span class="cf">function</span>(n) <span class="fu">rbinom</span>(n, <span class="at">size =</span> <span class="dv">1</span>, <span class="at">prob =</span> <span class="fu">shot_probs</span>(n)),</span>
@@ -2437,7 +2437,7 @@ vertical-align: -.125em;
                   0.047                   0.016 </code></pre>
 </div>
 </div>
-<p>This was the most interesting part of this file. The usual formula, σ/√n with σ = sqrt(0.7 × 0.3), is too big. At n = 20 it gives 0.1025 while the simulated sd is 0.0994, and from n = 10 on it’s off by up to 4.7%. The sum-of-variances SE is never more than about 1.6% off. The reason is that a 90% shot is much more predictable than a 70% shot (p(1 - p) is 0.09 instead of 0.21), and the 50% shots at the end don’t make up for it. At n = 20 the shots average p(1 - p) = 0.195, not 0.21.</p>
+<p>The usual formula, σ/√n with σ = sqrt(0.7 × 0.3), is too big. At n = 20 it gives 0.1025 while the simulated sd is 0.0994, and from n = 10 on it is off by up to 4.7%. The sum-of-variances SE is never more than about 1.6% off. The reason is that a 90% shot is much more predictable than a 70% shot (p(1 - p) is 0.09 instead of 0.21), and the 50% shots at the end do not make up for it. At n = 20 the shots average p(1 - p) = 0.195, not 0.21.</p>
 </section>
 <section id="what-happens-as-n-grows" class="level2" data-number="5">
 <h2 data-number="5" class="anchored" data-anchor-id="what-happens-as-n-grows"><span class="header-section-number">5</span> What happens as n grows</h2>
@@ -2599,7 +2599,7 @@ vertical-align: -.125em;
       0.0018 </code></pre>
 </div>
 </div>
-<p>The average shooting percentage is within 0.002 of 0.70 at every n. Skewness starts negative (-0.38 at n = 2), because most shots are better than 50% and the percentage can’t go above 1. It drops under 0.3 in size at n = 6, and from n = 200 on it stays within 0.09 of 0 (it’s even slightly positive at n = 250). Kurtosis starts low (2.29 at n = 2) and stays between about 2.87 and 3.12 from n = 8 on. Shapiro W is only 0.734 at n = 2 and still 0.975 at n = 20. Like the die and binomial, the shooting percentage can only take a few values (multiples of 1/n), so lots of results are tied.</p>
+<p>The average shooting percentage is within 0.002 of 0.70 at every n. Skewness starts negative (-0.38 at n = 2), because most shots are better than 50% and the percentage cannot go above 1. It drops under 0.3 in size at n = 6, and from n = 200 on it stays within 0.09 of 0 (it is even slightly positive at n = 250). Kurtosis starts low (2.29 at n = 2) and stays between about 2.87 and 3.12 from n = 8 on. Shapiro W is only 0.734 at n = 2 and still 0.975 at n = 20. Like the die and binomial, the shooting percentage can only take a few values (multiples of 1/n), so lots of results are tied.</p>
 </section>
 <section id="a-closer-look" class="level2" data-number="6">
 <h2 data-number="6" class="anchored" data-anchor-id="a-closer-look"><span class="header-section-number">6</span> A closer look</h2>
@@ -2631,7 +2631,7 @@ vertical-align: -.125em;
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(old_par)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>At n = 2 a game can only be 0%, 50% or 100%, so there are just three bars. At n = 6 there are 7 possible values, and about 10% of the simulated games were 6 for 6 (the exact chance is 10.5%). That’s the long flat step at 100% in the Q-Q plot, since the percentage can’t go any higher. The bottom of the staircase also sits more than one step under the line. So at n = 6 the numbers pass, but the plot is still a rough staircase. By n = 20, the game length in the handout, the staircase follows the line except for the bottom few steps, and at n = 100 it’s right on it. The comb-shaped histograms with bars sticking out above the red curve are the same binning effect as in the die file.</p>
+<p>At n = 2 a game can only be 0%, 50% or 100%, so there are just three bars. At n = 6 there are 7 possible values, and about 10% of the simulated games were 6 for 6 (the exact chance is 10.5%). That is the long flat step at 100% in the Q-Q plot, since the percentage cannot go any higher. The bottom of the staircase also sits more than one step under the line. So at n = 6 the numbers pass, but the plot is still a rough staircase. By n = 20, the game length in the handout, the staircase follows the line except for the bottom few steps, and at n = 100 it is right on it. The comb-shaped histograms with bars sticking out above the red curve are the same binning effect as in the die file.</p>
 </section>
 <section id="my-decision" class="level2" data-number="7">
 <h2 data-number="7" class="anchored" data-anchor-id="my-decision"><span class="header-section-number">7</span> My decision</h2>
@@ -2647,7 +2647,7 @@ vertical-align: -.125em;
 <pre><code>[1] 6</code></pre>
 </div>
 </div>
-<p>With the usual formula, my rule never passes. That’s not because of the shape. Skewness and kurtosis are fine early, but the sd check keeps failing because σ/√n is the wrong SE here. With the SE that adds up each shot’s variance, the smallest n I can defend is <strong>n = 6</strong>. Because a 6-shot game can only land on 7 values, I’d call that the bare minimum rather than a comfortable answer.</p>
+<p>With the usual formula, my rule never passes. Skewness and kurtosis are fine early, but the sd check keeps failing because σ/√n is the wrong SE here. With the SE that adds up each shot’s variance, the smallest n I can defend is <strong>n = 6</strong>. Because a 6-shot game can only land on 7 values, I would call that the lowest n that works rather than a comfortable answer.</p>
 <p>Same data, different cutoff (using the sum-of-variances SE):</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
@@ -2663,7 +2663,7 @@ vertical-align: -.125em;
 5   0.05        475</code></pre>
 </div>
 </div>
-<p>With a 0.5 cutoff n = 3 is enough, and with 0.2 it’s 25, so 30 is enough here even under the strict cutoff. As in the other files, I don’t read much into the 0.1 and 0.05 rows.</p>
+<p>With a 0.5 cutoff n = 3 is enough, and with 0.2 it is 25, so 30 is enough here even under the strict cutoff. As in the other files, I do not read much into the 0.1 and 0.05 rows.</p>
 </section>
 <section id="changing-p-versus-a-constant-70-shooter" class="level2" data-number="8">
 <h2 data-number="8" class="anchored" data-anchor-id="changing-p-versus-a-constant-70-shooter"><span class="header-section-number">8</span> Changing p versus a constant 70% shooter</h2>
@@ -2686,7 +2686,7 @@ vertical-align: -.125em;
  50          -0.104          -0.143</code></pre>
 </div>
 </div>
-<p>The constant 70% shooter needs n = 10, close to the 9 the formula predicted. The changing-p shooter got there faster, and its skewness is smaller in size at every n in the table. My guess at why: the shots near the end, close to 50%, are the most random ones (p(1 - p) is 0.25 at p = 0.5 versus 0.09 at p = 0.9), and they’re close to symmetric. So most of the game-to-game noise comes from nearly symmetric shots, while the very lopsided early shots barely add any.</p>
+<p>The constant 70% shooter needs n = 10, close to the 9 the formula predicted. The changing-p shooter got there faster, and its skewness is smaller in size at every n in the table. My guess at why: the shots near the end, close to 50%, are the most random ones (p(1 - p) is 0.25 at p = 0.5 versus 0.09 at p = 0.9), and they are close to symmetric. So most of the game-to-game noise comes from nearly symmetric shots, while the very lopsided early shots barely add any.</p>
 </section>
 <section id="does-the-seed-matter" class="level2" data-number="9">
 <h2 data-number="9" class="anchored" data-anchor-id="does-the-seed-matter"><span class="header-section-number">9</span> Does the seed matter?</h2>
@@ -2712,11 +2712,11 @@ vertical-align: -.125em;
 <pre><code>[1] 9</code></pre>
 </div>
 </div>
-<p>With seed 167 the changing-p shooter needs n = 8 and the constant shooter needs 9. So it’s faster with both seeds, but with seed 167 the gap is only one shot. For the changing-p version my honest answer is somewhere around 6 to 8.</p>
+<p>With seed 167 the changing-p shooter needs n = 8 and the constant shooter needs 9. So it is faster with both seeds, but with seed 167 the gap is only one shot. For the changing-p version I would put the answer around 6 to 8.</p>
 </section>
 <section id="what-surprised-me" class="level2" data-number="10">
 <h2 data-number="10" class="anchored" data-anchor-id="what-surprised-me"><span class="header-section-number">10</span> What surprised me</h2>
-<p>I guessed that non-identical shots would make the CLT slower, and it was actually a little faster than a constant 70% shooter. What did break was the formula. If I had plugged in σ/√n with p = 0.7 without thinking about it, my rule would have said this never becomes normal, and that would have been the formula’s fault, not the shape’s. The project instructions said not to apply the usual formula automatically, and this is a good example of why.</p>
+<p>Non-identical shots sound like they should make the CLT slower, but it was actually a little faster than a constant 70% shooter. The part that broke was the SE formula. If I had plugged in σ/√n with p = 0.7 without thinking about it, my rule would have said this never becomes normal, and I would have blamed the shape. The project instructions said not to apply the usual formula automatically, and this is a good example of why.</p>
 </section>
 
 </main>

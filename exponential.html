@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Geonho Lee">
-<meta name="dcterms.date" content="2026-10-09">
+<meta name="dcterms.date" content="2026-10-11">
 
 <title>Exponential population</title>
 <style>
@@ -2242,7 +2242,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 9, 2026</p>
+      <p class="date">October 11, 2026</p>
     </div>
   </div>
   
@@ -2262,7 +2262,7 @@ vertical-align: -.125em;
 </div>
 <section id="the-population" class="level2" data-number="1">
 <h2 data-number="1" class="anchored" data-anchor-id="the-population"><span class="header-section-number">1</span> The population</h2>
-<p>The exponential is the waiting time distribution from class, like how long until the next customer walks in. With rate = 1 the mean and sd are both 1, but the shape is nothing like a normal. Most values are small and there’s a long tail to the right (skewness 2, kurtosis 9 where a normal is 3). Out of the five populations I expected this one to give the CLT the hardest time, other than Cauchy. The draws are independent, all from the same distribution, and the variance is finite (it’s 1), so all three CLT assumptions hold here. If the CLT works anywhere, it should work here. It just might be slow.</p>
+<p>The exponential is the waiting time distribution from class, like how long until the next customer walks in. With rate = 1 the mean and sd are both 1, but the shape is nothing like a normal. Most values are small and there is a long tail to the right (skewness 2, kurtosis 9 where a normal is 3). Out of the five populations on the assignment list, this one should give the CLT the hardest time, other than the Cauchy. The draws are independent, all from the same distribution, and the variance is finite (it is 1), so all three CLT assumptions hold here. So the theorem does apply. It just might be slow.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>pop_mean <span class="ot">&lt;-</span> <span class="dv">1</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>pop_sd <span class="ot">&lt;-</span> <span class="dv">1</span></span>
@@ -2287,7 +2287,7 @@ vertical-align: -.125em;
 </section>
 <section id="what-i-expected-before-running-anything" class="level2" data-number="2">
 <h2 data-number="2" class="anchored" data-anchor-id="what-i-expected-before-running-anything"><span class="header-section-number">2</span> What I expected before running anything</h2>
-<p>From class, the skewness of the sample mean shrinks like 2/sqrt(n) and the excess kurtosis like 6/n. With my cutoff of 0.3, skewness needs n of about 45 and kurtosis only needs 20. So my guess was that skewness would be the thing holding it back and I’d end up somewhere around 45. That’s already more than 30.</p>
+<p>From class, the skewness of the sample mean shrinks like 2/sqrt(n) and the excess kurtosis like 6/n. With my cutoff of 0.3, skewness needs n of about 45 and kurtosis only needs 20. So my guess was that skewness would be the thing holding it back and I would end up somewhere around 45. That is already more than 30.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># skewness of the sample mean is pop_skew / sqrt(n)</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># excess kurtosis of the sample mean is pop_exkurt / n</span></span>
@@ -2303,7 +2303,7 @@ vertical-align: -.125em;
 </section>
 <section id="simulation" class="level2" data-number="3">
 <h2 data-number="3" class="anchored" data-anchor-id="simulation"><span class="header-section-number">3</span> Simulation</h2>
-<p>For each n I take 10,000 samples of size n, save the mean of each one, and summarize those 10,000 means. The loop lives in <code>clt_helpers.R</code>.</p>
+<p>For each n I take 10,000 samples of size n, save the mean of each one, and summarize those 10,000 means. I use the same 51 values of n in every file: every n from 2 to 20, then 25 to 100 in steps of 5, then 125 to 500 in steps of 25, which is the grid from the 9/14 class script. It is dense where n is small, which is where things change fastest, and spreads out after 100. The loop lives in <code>clt_helpers.R</code>.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>sim <span class="ot">&lt;-</span> <span class="fu">run_simulation</span>(</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">generator =</span> <span class="cf">function</span>(n) <span class="fu">rexp</span>(n, <span class="at">rate =</span> <span class="dv">1</span>),</span>
@@ -2485,7 +2485,7 @@ vertical-align: -.125em;
  4    0.029</code></pre>
 </div>
 </div>
-<p>The mean column sits at 1.00 the whole way, which is what it should be. The sd column matches sigma/sqrt(n) almost everywhere. It’s within about 1% for most n, and the worst gap was 2.9% at n = 4. That part isn’t really the CLT though, sigma/sqrt(n) is true for any n, so for me it’s more of a check that the simulation is working. Skewness is the slow part. It’s 0.38 at n = 30 and 0.302 at n = 45, which misses my cutoff by 0.002. Kurtosis stays under 3.3 from n = 25 on, close to the 20 I predicted, so it never ends up being the problem. Shapiro W creeps up from 0.900 at n = 2 to 0.999 at n = 500 (the test only takes 5,000 values, so it runs on a random half of the means). With that many points the test is so sensitive that I only use W as a trend, not to decide anything.</p>
+<p>The mean column never gets more than about 0.01 away from 1, which is what it should be. The sd column matches σ/√n almost everywhere. It is within about 1% for most n, and the worst gap was 2.9% at n = 4. That part is not really the CLT, though. σ/√n is true for any n, so for me it is more of a check that the simulation is working. Skewness is the slow part. It is 0.38 at n = 30 and 0.302 at n = 45, which misses my cutoff by 0.002. Kurtosis stays under 3.3 from n = 25 on, close to the 20 I predicted, so it never ends up being the problem. Shapiro W goes up slowly from 0.900 at n = 2 to 0.999 at n = 500 (the test only takes 5,000 values, so it runs on a random half of the means). With that many points the test is so sensitive that I only use W as a trend, not to decide anything.</p>
 </section>
 <section id="a-closer-look" class="level2" data-number="5">
 <h2 data-number="5" class="anchored" data-anchor-id="a-closer-look"><span class="header-section-number">5</span> A closer look</h2>
@@ -2500,7 +2500,7 @@ vertical-align: -.125em;
 </div>
 </div>
 </div>
-<p>At n = 5 the histogram is clearly lopsided and the Q-Q plot curves up hard on the right. At n = 30 the histogram already looks pretty normal, which is probably why people trust 30. But the Q-Q plot still bends above the line on the right end, and the left end sits above the line too, so both tails are off. At n = 65 the bend is much smaller but I can still see it in the last few points, and by n = 200 it’s basically on the line.</p>
+<p>At n = 5 the histogram is clearly lopsided and the Q-Q plot curves up hard on the right. At n = 30 the histogram already looks pretty normal, which is probably why people trust 30. But the Q-Q plot still bends above the line on the right end, and the left end sits above the line too, so both tails are off. At n = 65 the bend is smaller but still there at the top end, and by n = 200 it is basically on the line.</p>
 </section>
 <section id="my-decision" class="level2" data-number="6">
 <h2 data-number="6" class="anchored" data-anchor-id="my-decision"><span class="header-section-number">6</span> My decision</h2>
@@ -2511,21 +2511,23 @@ vertical-align: -.125em;
 </div>
 </div>
 <p>With my rule (skewness and kurtosis within 0.3 of normal, sd within 3% of theory, and it has to stay that way for every bigger n), the smallest n I can defend is <strong>n = 65</strong>.</p>
-<p>n = 30 doesn’t make it because skewness is still 0.38 there, about 25% over my cutoff. The histogram looks fine at 30, but the numbers and the Q-Q plot both say the right tail isn’t there yet.</p>
+<p>n = 30 does not make it because skewness is still 0.38 there, about 25% over my cutoff. The histogram looks fine at 30, but the numbers and the Q-Q plot both say the right tail is not there yet.</p>
 <p>Same data, different cutoff:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">cutoff =</span> <span class="fu">c</span>(<span class="fl">0.5</span>, <span class="fl">0.3</span>, <span class="fl">0.2</span>),</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">smallest_n =</span> <span class="fu">sapply</span>(<span class="fu">c</span>(<span class="fl">0.5</span>, <span class="fl">0.3</span>, <span class="fl">0.2</span>), <span class="cf">function</span>(k) <span class="fu">smallest_n</span>(results, <span class="at">cutoff =</span> k))</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">cutoff =</span> <span class="fu">c</span>(<span class="fl">0.5</span>, <span class="fl">0.3</span>, <span class="fl">0.2</span>, <span class="fl">0.1</span>, <span class="fl">0.05</span>),</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">smallest_n =</span> <span class="fu">sapply</span>(<span class="fu">c</span>(<span class="fl">0.5</span>, <span class="fl">0.3</span>, <span class="fl">0.2</span>, <span class="fl">0.1</span>, <span class="fl">0.05</span>), <span class="cf">function</span>(k) <span class="fu">smallest_n</span>(results, <span class="at">cutoff =</span> k))</span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>  cutoff smallest_n
-1    0.5         17
-2    0.3         65
-3    0.2         95</code></pre>
+1   0.50         17
+2   0.30         65
+3   0.20         95
+4   0.10         NA
+5   0.05         NA</code></pre>
 </div>
 </div>
-<p>This was the part I found most interesting. Loosen the cutoff to 0.5 and n = 17 is enough, so 30 passes easily. Tighten it to 0.2 and I need 95. So whether “30 is enough” is true depends a lot on how picky you are, and for this population it only works under the loose rule.</p>
+<p>This was the part I found most interesting. Loosen the cutoff to 0.5 and n = 17 is enough, so 30 passes easily. Tighten it to 0.2 and I need 95, and at 0.1 or 0.05 nothing passes, not even n = 500. So whether “30 is enough” is true depends a lot on how picky you are, and for this population it only works under the loose rule.</p>
 </section>
 <section id="does-the-seed-matter" class="level2" data-number="7">
 <h2 data-number="7" class="anchored" data-anchor-id="does-the-seed-matter"><span class="header-section-number">7</span> Does the seed matter?</h2>
@@ -2540,11 +2542,11 @@ vertical-align: -.125em;
 <pre><code>[1] 50</code></pre>
 </div>
 </div>
-<p>With seed 167 instead of my student ID, the answer moves from 65 down to 50. Skewness hovers right around 0.3 between n = 45 and 65, so a little randomness decides which side of the line it lands on. The exact number isn’t stable, but the conclusion is: around 50 to 65, and not 30.</p>
+<p>With seed 167 instead of my student ID, the answer moves from 65 down to 50. Skewness hovers right around 0.3 between n = 45 and 65, so a little randomness decides which side of the line it lands on. The exact number is not stable, but the conclusion is: around 50 to 65, and not 30.</p>
 </section>
 <section id="what-surprised-me" class="level2" data-number="8">
 <h2 data-number="8" class="anchored" data-anchor-id="what-surprised-me"><span class="header-section-number">8</span> What surprised me</h2>
-<p>Two things. First, my prediction of 45 was almost exactly right. Skewness at n = 45 was 0.302, just over the line. Then n = 50 and 55 passed, but n = 60 came back at 0.303, and because of my keep-passing rule that pushed the answer up to 65. Second, I expected a different seed to move things by maybe 5. It moved by 15. When the cutoff sits where the curve is flattening out, a tiny bit of noise turns into a big change in n.</p>
+<p>Two things. First, my prediction of 45 was almost exactly right. Skewness at n = 45 was 0.302, just over the line. Then n = 50 and 55 passed, but n = 60 came back at 0.303, and because of my keep-passing rule that pushed the answer up to 65. Second, how much the seed mattered. Changing it moved the answer by 15, from 65 to 50, even though nothing about the population changed. When the cutoff sits where the curve is flattening out, a tiny bit of noise turns into a big change in n.</p>
 </section>
 
 </main>

@@ -43,7 +43,7 @@ curve(dnorm(x), add = TRUE, col = "firebrick", lwd = 2)
 
 ## What I expected before running anything
 
-There isn't much to predict. The average of normal values is exactly normal for any n, not just approximately, so both formulas below come out to 0. I expected my rule to pass at n = 2, the smallest n I tried.
+There is not much to predict. The average of normal values is exactly normal for any n, not just approximately, so both formulas below come out to 0. I expected my rule to pass at n = 2, the smallest n I tried.
 
 ```{r}
 #| label: prediction
@@ -56,7 +56,7 @@ c(n_for_skew = n_for_skew, n_for_kurt = n_for_kurt)
 
 ## Simulation
 
-Same setup as the other files: for each n I take 10,000 samples of size n and keep the mean of each one.
+Same setup as the exponential file: for each n I take 10,000 samples of size n and keep the mean of each one, over the same 51 values of n.
 
 ```{r}
 #| label: run
@@ -92,7 +92,7 @@ c(max_abs_skew = round(max(abs(results$skewness)), 3),
   max_abs_kurt_gap = round(max(abs(results$kurtosis - 3)), 3))
 ```
 
-The mean stays within 0.005 of 0 at every n, and the sd is within 2% of sigma/sqrt(n) everywhere (the worst gap was 1.8% at n = 35). What I didn't expect is that skewness and kurtosis still bounce around even though the true values are exactly 0 and 3. Skewness gets as far as 0.047 and kurtosis is off by up to 0.1. That isn't the population, it's just noise from using 10,000 simulations. Shapiro W is 0.999 or higher at every n.
+The mean stays within 0.005 of 0 at every n, and the sd is within 2% of σ/√n everywhere (the worst gap was 1.8% at n = 35). What I did not expect is that skewness and kurtosis still bounce around even though the true values are exactly 0 and 3. Skewness gets as far as 0.047 and kurtosis is off by up to 0.1. That is just noise from using 10,000 simulations. Shapiro W is 0.999 or higher at every n.
 
 ## A closer look
 
@@ -104,7 +104,7 @@ chosen_n <- smallest_n(results, cutoff = cutoff)
 plot_means(sim, show_n = c(2, 5, 30, 100), pop_mean = pop_mean, pop_sd = pop_sd)
 ```
 
-All four histograms already sit on the red curve, even at n = 2. The Q-Q plots are straight lines at every n. Only the last few points at each end wander a little, and that happens at n = 100 too, so it's just randomness in the extremes. There's nothing for the CLT to fix here.
+All four histograms already sit on the red curve, even at n = 2. The Q-Q plots are straight lines at every n. Only the last few points at each end wander a little, and that happens at n = 100 too, so it is just randomness in the extremes. There is nothing for the CLT to fix here.
 
 ## My decision
 
@@ -113,9 +113,9 @@ All four histograms already sit on the red curve, even at n = 2. The Q-Q plots a
 chosen_n
 ```
 
-With my rule (skewness and kurtosis within `r cutoff` of normal, sd within 3% of theory, and it has to stay that way for every bigger n), the smallest n I can defend is **n = `r chosen_n`**, the smallest n I tested. For a normal population the answer is basically "any n", so 30 is way more than needed.
+My rule (skewness and kurtosis within `r cutoff` of normal, sd within 3% of theory, and it has to stay that way for every bigger n) passes at **n = `r chosen_n`**, the smallest n I tested. For a normal population the answer is basically "any n", so 30 is way more than needed.
 
-Same data, different cutoff. I added two tighter cutoffs here on purpose:
+Same data, different cutoff:
 
 ```{r}
 #| label: cutoff-table
@@ -125,7 +125,7 @@ data.frame(
 )
 ```
 
-This table ended up being the most useful thing in this file. Every cutoff from 0.5 down to 0.1 says n = 2, which is right. But at 0.05 it says I'd need n = 475, for a population that is already perfectly normal. That happens because the simulation noise alone moves skewness and kurtosis by around 0.05 to 0.1. So a cutoff that tight is mostly measuring noise. It's also why I'm comfortable with 0.3: it's a few times bigger than the noise, but still small enough to catch the real problem in the exponential case.
+This table ended up being the most useful thing in this file. Every cutoff from 0.5 down to 0.1 says n = 2, which is right. But at 0.05 it says I would need n = 475, for a population that is already perfectly normal. That happens because the simulation noise alone moves skewness and kurtosis by around 0.05 to 0.1. So a cutoff that tight is mostly measuring noise. It is also why I am comfortable with 0.3: it is a few times bigger than the noise, but still small enough to catch the real problem in the exponential case.
 
 ## Does the seed matter?
 
@@ -143,4 +143,4 @@ With seed 167 the answer is still n = 2. Nothing to argue about here.
 
 ## What surprised me
 
-That "perfectly normal" doesn't show up as perfect numbers. Even with 10,000 simulations the skewness wobbles by up to about 0.05 and the kurtosis by up to 0.1. Before this I would have read a skewness of 0.05 as slightly skewed. Now I know that at this many simulations it can be pure noise, and that's what I used to sanity check my own cutoff.
+A perfectly normal population still does not give perfect numbers. Even with 10,000 simulations the skewness wobbles by up to about 0.05 and the kurtosis by up to 0.1. Before this I would have read a skewness of 0.05 as slightly skewed. Now I know that at this many simulations it can be pure noise, and that is what I used to sanity check my own cutoff.

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Geonho Lee">
-<meta name="dcterms.date" content="2026-10-10">
+<meta name="dcterms.date" content="2026-10-11">
 
 <title>Dependent machine failures</title>
 <style>
@@ -2243,7 +2243,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 10, 2026</p>
+      <p class="date">October 11, 2026</p>
     </div>
   </div>
   
@@ -2266,8 +2266,8 @@ vertical-align: -.125em;
 <p>This is the machine failure model from the class handout. X is the time a machine runs before it fails. After every failure the rate for the next run changes based on the last run:</p>
 <p>rate = 1 × exp(1.25 × (previous time - 1))</p>
 <p>So a long run (more than 1) makes the next rate higher and the next run shorter, and a short run makes the next one longer. I used the same parameters as the handout: baseline rate 1, beta 1.25, reference time 1.</p>
-<p>Each run comes from an exponential distribution, but the rate depends on the run before, so the runs are not independent. That’s the CLT assumption this process breaks. The handout points out that the rate changes from one run to the next, so the runs don’t all come from one fixed exponential. But once a machine has been running for a while, every run has the same long-run distribution, so I treat this as a dependence problem more than an identical-distribution problem. The variance is finite. The lowest the rate can ever go is exp(-1.25) ≈ 0.29 (right after a run of length 0), so no run can have a longer tail than an Exponential(0.29).</p>
-<p>There’s no formula for the long-run mean or sd of this process that I could find, so I estimated them from one long run of a million failures, using the same loop as the handout:</p>
+<p>Each run comes from an exponential distribution, but the rate depends on the run before, so the runs are not independent. That is the CLT assumption this process breaks. The handout points out that the rate changes from one run to the next, so the runs do not all come from one fixed exponential. But once a machine has been running for a while, every run has the same long-run distribution, so I treat this as a dependence problem more than an identical-distribution problem. The variance is finite. The lowest the rate can ever go is exp(-1.25) ≈ 0.29 (right after a run of length 0), so no run can have a longer tail than an Exponential(0.29).</p>
+<p>There is no formula for the long-run mean or sd of this process that I could find, so I estimated them from one long run of a million failures, using the same loop as the handout:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>baseline_rate <span class="ot">&lt;-</span> <span class="dv">1</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>beta <span class="ot">&lt;-</span> <span class="fl">1.25</span></span>
@@ -2325,11 +2325,11 @@ share_under_0.25    share_over_10          longest
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(old_par)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>The left plot shows the zigzag: a long run is usually followed by a short one. The long-run mean is 1.67, not 1. I didn’t expect that, since the baseline rate is 1. My guess is that it’s lopsided. After a run near 0 the next one averages exp(1.25) ≈ 3.5, but after a long run the next one averages close to 0 and can’t go any lower. And runs near 0 are common. The sd is 2.55, while an Exponential(1) has sd 1. The histogram has a lot more very short runs than the red curve (36% are under 0.25, compared with 22% for an Exponential(1)) and a longer right tail. About 1.8% of runs are over 10, and the longest one was about 49. Skewness is 2.89 (an Exponential(1) has 2) and kurtosis is 15.4. Each run has a correlation of -0.37 with the run right before it and +0.34 with the run two back, and after that it keeps switching sign and getting smaller.</p>
+<p>The left plot shows the zigzag: a long run is usually followed by a short one. The long-run mean is 1.67, not 1, even though the baseline rate is 1. My guess is that the feedback is lopsided. After a run near 0 the next one averages exp(1.25) ≈ 3.5, but after a long run the next one averages close to 0 and cannot go any lower. And runs near 0 are common. The sd is 2.55, while an Exponential(1) has sd 1. The histogram has a lot more very short runs than the red curve (36% are under 0.25, compared with 22% for an Exponential(1)) and a longer right tail. About 1.8% of runs are over 10, and the longest one was about 49. Skewness is 2.89 (an Exponential(1) has 2) and kurtosis is 15.4. Each run has a correlation of -0.37 with the run right before it and +0.34 with the run two back, and after that it keeps switching sign and getting smaller.</p>
 </section>
 <section id="what-i-expected-before-running-anything" class="level2" data-number="2">
 <h2 data-number="2" class="anchored" data-anchor-id="what-i-expected-before-running-anything"><span class="header-section-number">2</span> What I expected before running anything</h2>
-<p>If the runs were independent, I could use the same formulas as the exponential file with the long-run skewness and kurtosis. Skewness would need n of about 93 to get under 0.3, and kurtosis only about 41. The project description says that with dependence “the effective sample size is smaller than it appears,” so I expected two things: it would take more than 93, and the real SE would be bigger than σ/√n.</p>
+<p>If the runs were independent, I could use the same formulas as the exponential file with the long-run skewness and kurtosis. Skewness would need n of about 93 to get under 0.3, and kurtosis only about 41. The project description says that with dependence “the effective sample size is smaller than it appears.” If that holds here, two things should happen: it should take more than 93, and the real SE should be bigger than σ/√n.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># what the usual formulas would say if the runs were independent</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">n_for_skew_if_independent =</span> (pop_skew <span class="sc">/</span> cutoff)<span class="sc">^</span><span class="dv">2</span>,</span>
@@ -2342,8 +2342,8 @@ share_under_0.25    share_over_10          longest
 </section>
 <section id="simulation" class="level2" data-number="3">
 <h2 data-number="3" class="anchored" data-anchor-id="simulation"><span class="header-section-number">3</span> Simulation</h2>
-<p>For a sample of size n, I let a machine run 50 failures first so it isn’t still affected by how it started, then I average the next n operating times. I do that for 10,000 machines.</p>
-<p><code>run_simulation()</code> from my helper file draws each sample one at a time, and with a loop inside every sample that was too slow. So here I run all 10,000 machines side by side: each step of the loop moves every machine forward by one failure.</p>
+<p>For a sample of size n, I let a machine run 50 failures first so it is not still affected by how it started, then I average the next n operating times. I do that for 10,000 machines, with the same 51 values of n as the exponential file.</p>
+<p><code>run_simulation()</code> from my helper file draws each sample one at a time, and with a loop inside every sample that would be very slow here. So instead I run all 10,000 machines side by side: each step of the loop moves every machine forward by one failure.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>run_machines <span class="ot">&lt;-</span> <span class="cf">function</span>(n, <span class="at">number_of_samples =</span> <span class="dv">10000</span>, <span class="at">burn_in =</span> <span class="dv">50</span>) {</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> <span class="fu">rexp</span>(number_of_samples, <span class="at">rate =</span> baseline_rate)</span>
@@ -2387,7 +2387,7 @@ share_under_0.25    share_over_10          longest
 </section>
 <section id="the-standard-error" class="level2" data-number="4">
 <h2 data-number="4" class="anchored" data-anchor-id="the-standard-error"><span class="header-section-number">4</span> The standard error</h2>
-<p>The usual σ/√n assumes the values are independent. When they aren’t, the variance of the total also includes the covariance between every pair of runs. Using the correlations from the long run, the SE becomes:</p>
+<p>The usual σ/√n assumes the values are independent. When they are not, the variance of the total also includes the covariance between every pair of runs. Using the correlations from the long run, the SE becomes:</p>
 <p>SE = (σ/√n) × sqrt(1 + 2 × sum over k of (1 - k/n) × rho_k)</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>adjusted_se <span class="ot">&lt;-</span> <span class="cf">function</span>(n) {</span>
@@ -2502,7 +2502,7 @@ share_under_0.25    share_over_10          longest
 <pre><code>[1] 0.008</code></pre>
 </div>
 </div>
-<p>My second guess was wrong. The usual σ/√n is off by 12% to 19% at every n, but it’s too big, not too small. The adjusted formula is never more than 2.4% off. The reason is the negative correlation: a long run is usually followed by a short one, so they partly cancel out in the average. Adding up all the correlations gives a factor of 0.733 instead of 1, so for large n the real SE is about sqrt(0.733) ≈ 0.86 times σ/√n. That means n of these runs pin down the mean about as well as 1.36n independent runs would. At n = 30 that’s like 41 independent runs. So here the effective sample size is bigger than it looks. The warning in the project description fits positive dependence, where similar values come in streaks. This process goes back and forth, so it works the other way. I used the correlations up to 40 runs back. From 13 runs back on, none of them is bigger than 0.008 in size, so going further wouldn’t change anything.</p>
+<p>The SE part of the project description’s warning does not hold here. The usual σ/√n is off by 12% to 19% at every n, but it is too big, not too small. The adjusted formula is never more than 2.4% off. The reason is the negative correlation: a long run is usually followed by a short one, so they partly cancel out in the average. Adding up all the correlations gives a factor of 0.733 instead of 1, so for large n the real SE is about sqrt(0.733) ≈ 0.86 times σ/√n. That means n of these runs estimate the mean about as well as 1.36n independent runs would. At n = 30 that is like 41 independent runs. So here the effective sample size is bigger than it looks. The warning in the project description fits positive dependence, where similar values come in streaks. This process goes back and forth, so it works the other way. I used the correlations up to 40 runs back. From 13 runs back on, none of them is bigger than 0.008 in size, so going further would not change anything.</p>
 </section>
 <section id="what-happens-as-n-grows" class="level2" data-number="5">
 <h2 data-number="5" class="anchored" data-anchor-id="what-happens-as-n-grows"><span class="header-section-number">5</span> What happens as n grows</h2>
@@ -2664,7 +2664,7 @@ share_under_0.25    share_over_10          longest
        0.016 </code></pre>
 </div>
 </div>
-<p>The average of the sample means is within 0.016 of 1.67 at every n, so the center is fine. The shape is the slow part. Skewness sits above the red dashed line (what it would be for independent runs) at every n, and at n = 100 it’s 0.415 compared with 0.289, about 1.4 times higher. Kurtosis is 11.1 at n = 2 and doesn’t stay within 0.3 of 3 until n = 90. Shapiro W is 0.79 at n = 2 and 0.97 at n = 30.</p>
+<p>The average of the sample means is within 0.016 of 1.67 at every n, so the center is fine. The shape is the slow part. Skewness sits above the red dashed line (what it would be for independent runs) at every n, and at n = 100 it is 0.415 compared with 0.289, about 1.4 times higher. Kurtosis is 11.1 at n = 2 and does not stay within 0.3 of 3 until n = 90. Shapiro W is 0.79 at n = 2 and 0.97 at n = 30.</p>
 </section>
 <section id="a-closer-look" class="level2" data-number="6">
 <h2 data-number="6" class="anchored" data-anchor-id="a-closer-look"><span class="header-section-number">6</span> A closer look</h2>
@@ -2696,7 +2696,7 @@ share_under_0.25    share_over_10          longest
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(old_par)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>At n = 5 the histogram is piled up on the left with a long right tail, and the red curve doesn’t fit at all. At n = 30 the peak is clearly to the left of the red curve and the right tail is too long. In the Q-Q plot both ends bend up away from the line: the smallest means aren’t as small as a normal would give, and the biggest ones are bigger. At n = 100 the histogram is close to the curve, but its right tail still runs a bit past it, and the Q-Q plot still bends at both ends. At n = 300 the points follow the line through the middle, and both ends still sit a little above it.</p>
+<p>At n = 5 the histogram is piled up on the left with a long right tail, and the red curve does not fit at all. At n = 30 the peak is clearly to the left of the red curve and the right tail is too long. In the Q-Q plot both ends bend up away from the line: the smallest means are not as small as a normal would give, and the biggest ones are bigger. At n = 100 the histogram is close to the curve, but its right tail still runs a bit past it, and the Q-Q plot still bends at both ends. At n = 300 the points follow the line through the middle, and both ends still sit a little above it.</p>
 </section>
 <section id="my-decision" class="level2" data-number="7">
 <h2 data-number="7" class="anchored" data-anchor-id="my-decision"><span class="header-section-number">7</span> My decision</h2>
@@ -2712,7 +2712,7 @@ share_under_0.25    share_over_10          longest
 <pre><code>[1] 300</code></pre>
 </div>
 </div>
-<p>With the usual formula my rule never passes, because the sd check fails at every n (the usual SE is always at least 11.9% too big). Like in the basketball file, that’s the formula failing, not the shape. With the dependence-adjusted SE, the smallest n I can defend is <strong>n = 300</strong>. Skewness is what holds it back. It’s under 0.3 from n = 200 on, except at n = 275 where it comes back at 0.307, and my keep-passing rule doesn’t let that slide. Kurtosis has been fine since n = 90. So my first guess was right: it took longer than the 93 I’d expect for independent runs, about 3 times longer, and 10 times the usual 30.</p>
+<p>With the usual formula my rule never passes, because the sd check fails at every n (the usual SE is always at least 11.9% too big). Like in the basketball file, the problem is the formula. With the dependence-adjusted SE, the smallest n I can defend is <strong>n = 300</strong>. Skewness is what holds it back. It is under 0.3 from n = 200 on, except at n = 275 where it comes back at 0.307, and my keep-passing rule counts that as a fail. Kurtosis has been fine since n = 90. So the other part of the warning held: it took longer than the 93 I would expect for independent runs, about 3 times longer, and 10 times the usual 30.</p>
 <p>Same data, different cutoff (with the adjusted SE):</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
@@ -2728,7 +2728,7 @@ share_under_0.25    share_over_10          longest
 5   0.05         NA</code></pre>
 </div>
 </div>
-<p>With a looser 0.5 cutoff it’s 90, and with 0.2 it’s 475, the second-biggest n I tried. At 0.1 and 0.05 nothing passes. Even with the loosest cutoff, 30 isn’t close.</p>
+<p>With a looser 0.5 cutoff it is 90, and with 0.2 it is 475, the second-biggest n I tried. At 0.1 and 0.05 nothing passes. Even with the loosest cutoff, 30 is not close.</p>
 </section>
 <section id="does-the-seed-matter" class="level2" data-number="8">
 <h2 data-number="8" class="anchored" data-anchor-id="does-the-seed-matter"><span class="header-section-number">8</span> Does the seed matter?</h2>
@@ -2761,7 +2761,7 @@ share_under_0.25    share_over_10          longest
 </section>
 <section id="what-surprised-me" class="level2" data-number="9">
 <h2 data-number="9" class="anchored" data-anchor-id="what-surprised-me"><span class="header-section-number">9</span> What surprised me</h2>
-<p>I expected dependence to make everything worse. Instead it went two ways. The mean is more precise than σ/√n says, because long and short runs cancel each other out. But the shape is slower than for independent runs, and n = 30 is nowhere close. My guess at why: the back-and-forth cancels a lot of the spread (for large n the variance of the mean is only 0.733 of what independent runs would give), but it doesn’t do as much to the rare very long runs that make the right tail. Skewness is measured relative to the spread, so cutting the spread more than the tail means more skewness. The other thing I didn’t see coming was the long-run mean of 1.67. The baseline rate is 1, so I assumed the mean would be 1 and the sd would be 1 like an Exponential(1). If I had used those, the SE check would have been off by more than a factor of 2.</p>
+<p>The project description made it sound like dependence makes everything worse. Here it went two ways. The mean is more precise than σ/√n says, because long and short runs cancel each other out. But the shape is slower than for independent runs, and n = 30 is nowhere close. My guess at why: the back-and-forth cancels a lot of the spread (for large n the variance of the mean is only 0.733 of what independent runs would give), but it does not do as much to the rare very long runs that make the right tail. Skewness is measured relative to the spread, so cutting the spread more than the tail means more skewness. The other surprise was the long-run mean of 1.67. With a baseline rate of 1, it is easy to assume the mean and sd are both 1 like an Exponential(1). If I had used those, the SE check would have been off by more than a factor of 2.</p>
 </section>
 
 </main>
